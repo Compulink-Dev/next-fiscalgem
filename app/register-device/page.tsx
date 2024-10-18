@@ -38,30 +38,37 @@ const RegisterDeviceForm = () => {
     };
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-                <Label>Device ID :</Label>
-                <Input
+        <div className="flex flex-col items-center justify-center h-screen w-screen">
+            <div className=" border p-4 rounded md:w-2/6">
+                <div className="">
+                    <p className="pb-8">Register device</p>
+                </div>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 ">
+                    <div>
+                        <Label>Device ID :</Label>
+                        <Input
 
-                    {...register('deviceID')}
-                    aria-invalid={!!errors.deviceID}
-                />
-                {errors.deviceID && (
-                    <span className="text-red-500 text-xs">{errors.deviceID.message}</span>
-                )}
+                            {...register('deviceID')}
+                            aria-invalid={!!errors.deviceID}
+                        />
+                        {errors.deviceID && (
+                            <span className="text-red-500 text-xs">{errors.deviceID.message}</span>
+                        )}
+                    </div>
+                    <div>
+                        <Label>Activation Key :</Label>
+                        <Input
+                            {...register('activationKey')}
+                            aria-invalid={!!errors.activationKey}
+                        />
+                        {errors.activationKey && (
+                            <span className="text-red-500 text-xs">{errors.activationKey.message}</span>
+                        )}
+                    </div>
+                    <Button className='w-full' type="submit">Register Device</Button>
+                </form>
             </div>
-            <div>
-                <Label>Activation Key :</Label>
-                <Input
-                    {...register('activationKey')}
-                    aria-invalid={!!errors.activationKey}
-                />
-                {errors.activationKey && (
-                    <span className="text-red-500 text-xs">{errors.activationKey.message}</span>
-                )}
-            </div>
-            <Button type="submit">Register Device</Button>
-        </form>
+        </div>
     );
 };
 

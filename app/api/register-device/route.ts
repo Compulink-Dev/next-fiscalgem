@@ -1,6 +1,7 @@
 // app/api/register-device/route.ts
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+import { handleError } from '@/lib/error-handler';
 
 export async function POST(request: Request) {
     const { deviceID, activationKey, certificateRequest } = await request.json();
@@ -18,6 +19,8 @@ export async function POST(request: Request) {
         );
         return NextResponse.json(response.data);
     } catch (error: any) {
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+        console.log("Register Error : ", error);
+        return handleError(error)
+
     }
 }

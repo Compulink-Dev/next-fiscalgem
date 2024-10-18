@@ -1,21 +1,25 @@
 // app/api/close-day/route.ts
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+import { handleError } from '@/lib/error-handler';
+import { postToFDMS } from '@/lib/fdms-client';
+
+interface CloseDayRequest {
+    deviceID: string;
+    fiscalDayNo: number;
+    fiscalDayCounters: any;
+    fiscalDayDeviceSignature: string;
+    receiptCounter: number;
+}
+
 
 export async function POST(request: Request) {
-    const { deviceID, fiscalDayNo, fiscalDayCounters, receiptCounter, fiscalDayDeviceSignature } = await request.json();
 
     try {
-        const response = await axios.post('https://fdmsapi.zimra.co.zw/closeDay', {
-            deviceID,
-            fiscalDayNo,
-            fiscalDayCounters,
-            receiptCounter,
-            fiscalDayDeviceSignature,
-        });
-
-        return NextResponse.json(response.data);
+        const { deviceID, fiscalDayNo, fiscalDayCounters, fiscalDayDeviceSignature, receiptCounter }: CloseDayRequest = await request.json();
+        const response = await postToFDMS('/closeDay', { deviceID, fiscalDayNo, fiscalDayCounters, fiscalDayDeviceSignature, receiptCounter });
+        return NextResponse.json(response);
     } catch (error: any) {
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+        return handleError(error);
     }
 }

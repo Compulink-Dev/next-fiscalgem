@@ -1,23 +1,17 @@
-// app/api/get-config/route.ts
 import { NextResponse } from 'next/server';
-import axios from 'axios';
+import { postToFDMS } from '@/lib/fdms-client';
+import { handleError } from '@/lib/error-handler';
+
+interface GetConfigRequest {
+    deviceID: string;
+}
 
 export async function POST(request: Request) {
-    const { deviceID } = await request.json();
-
-    const headers = {
-        DeviceModelName: 'YourDeviceModelName',
-        DeviceModelVersionNo: 'YourDeviceModelVersion',
-    };
-
     try {
-        const response = await axios.post(
-            'https://fdmsapi.zimra.co.zw/getConfig',
-            { deviceID },
-            { headers }
-        );
-        return NextResponse.json(response.data);
+        const { deviceID }: GetConfigRequest = await request.json();
+        const response = await postToFDMS('/getConfig', { deviceID });
+        return NextResponse.json(response);
     } catch (error: any) {
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+        return handleError(error);
     }
 }
