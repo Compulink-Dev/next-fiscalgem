@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 
 // Centralized error handler function
-export function handleError(error: any) {
+//@ts-expect-error
+export function handleError(error) {
     // If the error is from a response, handle the ZIMRA API's ProblemDetails structure
     if (error.response) {
         const problemDetails = error.response.data;

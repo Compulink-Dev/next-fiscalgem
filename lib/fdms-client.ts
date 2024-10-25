@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 
 export async function postToFDMS(endpoint: string, data: object) {
     const headers = {
