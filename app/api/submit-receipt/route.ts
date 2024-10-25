@@ -3,6 +3,14 @@ import { postToFDMS } from '@/lib/fdms-client';
 import { handleError } from '@/lib/error-handler';
 import Receipt from '@/models/Receipt';
 import dbConnect from '@/lib/db';
+import axios from 'axios';
+
+interface ReceiptItem {
+    itemID: string;
+    description: string;
+    quantity: number;
+    price: number;
+}
 
 
 interface SubmitReceiptRequest {
@@ -10,7 +18,7 @@ interface SubmitReceiptRequest {
     fiscalDayNo: number;
     receiptGlobalNo: number;
     receiptCounter: number;
-    items: any[];
+    items: ReceiptItem[];
     totalAmount: number;
 }
 
@@ -32,7 +40,11 @@ export async function POST(request: Request) {
         await newReceipt.save();
 
         return NextResponse.json({ success: true, data: newReceipt });
-    } catch (error: any) {
-        return handleError(error);
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            return handleError(error.response?.data?.message || error.message);
+        } else {
+            return handleError('An unexpected error occurred');
+        }
     }
 }

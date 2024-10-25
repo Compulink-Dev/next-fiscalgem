@@ -94,10 +94,10 @@ const InvoicePage = () => {
         fetchLogo();
 
         QRCode.toDataURL(`Invoice No: ${receiptData.invoiceNo}`, { errorCorrectionLevel: 'H' })
-            .then((url: any) => {
+            .then((url) => {
                 setQrCodeBase64(url);
             })
-            .catch((err: any) => {
+            .catch((err) => {
                 console.error(err);
             });
     }, []);

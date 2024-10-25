@@ -3,6 +3,8 @@ import https from 'https';
 import fs from 'fs';
 import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
+import axios from 'axios';
+import { handleError } from '@/lib/error-handler';
 
 // Define types for the expected body, if needed
 interface RequestBody {
@@ -18,7 +20,7 @@ export async function POST(req: NextRequest) {
 
         // Define the HTTPS request options
         const options = {
-            hostname: 'fdmsapi.zimra.co.zw',
+            hostname: 'fdmsapitest.zimra.co.zw',
             port: 443,
             path: '/your-endpoint',
             method: 'POST',
@@ -56,8 +58,11 @@ export async function POST(req: NextRequest) {
         // Write the request body to the HTTPS request
         httpsReq.write(JSON.stringify(body));
         httpsReq.end();
-    } catch (error) {
-        console.error(error);
-        return NextResponse.json({ message: 'Bad Request', error }, { status: 400 });
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            return handleError(error.response?.data?.message || error.message);
+        } else {
+            return handleError('An unexpected error occurred');
+        }
     }
 }

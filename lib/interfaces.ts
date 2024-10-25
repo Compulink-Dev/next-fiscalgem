@@ -147,3 +147,8 @@
 //     },
 //     receiptCounter: 25
 // };
+
+
+// export default ([
+//     closeDayPayload
+// ])

@@ -2,11 +2,29 @@
 
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
+
+const notify = () => toast('Here is your toast.');
+
+
+// Define types for response and config
+interface Config {
+  // Define the properties based on your API response
+  fiscalDayNo: number;
+  status: string;
+  // Add other fields as needed
+}
+
+interface FDMSResponse {
+  // Define the properties based on your FDMS API response
+  success: boolean;
+  message: string;
+  // Add other fields as needed
+}
 
 export default function Home() {
-  const [response, setResponse] = useState<any>(null);
-
-  const [config, setConfig] = useState(null);
+  const [response, setResponse] = useState<FDMSResponse | null>(null);
+  const [config, setConfig] = useState<Config | null>(null);
 
   const openFiscalDay = async () => {
     const res = await fetch('/api/fiscal/open-day', {
@@ -67,6 +85,7 @@ export default function Home() {
           <pre className='border p-4 rounded mt-4 text-red-700'>{JSON.stringify(response, null, 2)}</pre>
         </div>
       )}
+      <button onClick={notify}>Make me a toast</button>
     </div>
   );
 }

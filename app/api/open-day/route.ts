@@ -1,21 +1,20 @@
 // app/api/open-day/route.ts
 import { NextResponse } from 'next/server';
-import axios from 'axios';
 import { postToFDMS } from '@/lib/fdms-client';
 import { handleError } from '@/lib/error-handler';
+import axios from 'axios';
 
 export async function POST(request: Request) {
     const { deviceID, fiscalDayOpened, fiscalDayNo } = await request.json();
 
-    const headers = {
-        DeviceModelName: 'YourDeviceModelName',
-        DeviceModelVersionNo: 'YourDeviceModelVersion',
-    };
-
     try {
         const response = await postToFDMS('/openDay', { deviceID, fiscalDayOpened, fiscalDayNo });
         return NextResponse.json(response.data);
-    } catch (error: any) {
-        return handleError(error)
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            return handleError(error.response?.data?.message || error.message);
+        } else {
+            return handleError('An unexpected error occurred');
+        }
     }
 }

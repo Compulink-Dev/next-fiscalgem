@@ -1,6 +1,7 @@
 // app/api/get-server-certificate/route.ts
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+import { handleError } from '@/lib/error-handler';
 
 export async function POST(request: Request) {
     const { thumbprint } = await request.json();
@@ -11,7 +12,11 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json(response.data);
-    } catch (error: any) {
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            return handleError(error.response?.data?.message || error.message);
+        } else {
+            return handleError('An unexpected error occurred');
+        }
     }
 }
