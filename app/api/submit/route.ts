@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import https from 'https';
 import Receipt from '@/models/Receipt';
-import dbConnect from '@/lib/db';
+import { dbConnect } from '@/lib/db';
+
 
 export async function POST(request: Request) {
     try {
