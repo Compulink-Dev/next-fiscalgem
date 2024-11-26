@@ -12,6 +12,7 @@ function calculateReceiptTotal(receipt: any): number {
         0
     );
     return linesTotal + taxesTotal;
+
 }
 
 function validateReceiptFields(receipt: any) {
