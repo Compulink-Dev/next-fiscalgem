@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import https from 'https';
-import fs from 'fs';
-import path from 'path';
+
 
 export async function fetchData(endpoint: string, errorMessage: string) {
     const deviceID = process.env.DEVICE_ID;
