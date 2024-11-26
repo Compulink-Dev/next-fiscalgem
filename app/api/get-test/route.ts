@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { handleError } from '@/lib/error-handler';
 import Receipt from '@/models/Receipt';
-import dbConnect from '@/lib/db';
+import { dbConnect } from '@/lib/db';
 import axios from 'axios';
 import { postSubmitFDMS } from '@/lib/postSubmit';
 

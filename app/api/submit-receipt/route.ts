@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import Receipt from '@/models/Receipt';
-import connectToDatabase from '@/lib/db';
+import { dbConnect } from '@/lib/db';
 
 function calculateReceiptTotal(receipt: any): number {
     const linesTotal = receipt.receiptLines.reduce(
@@ -40,7 +40,7 @@ function validateReceiptFields(receipt: any) {
 }
 
 export async function POST(request: Request) {
-    await connectToDatabase();
+    await dbConnect();
 
     try {
         const body = await request.text();
