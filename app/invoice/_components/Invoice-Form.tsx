@@ -222,7 +222,7 @@ const Invoice: React.FC<InvoiceProps> = ({ data, qrUrl }) => {
                     {safeReceiptLines.length > 0 ? (
                         safeReceiptLines.map((line, index) => (
                             <tr key={index} className="border">
-                                <td className="border p-2 text-center">{line.receiptLineNo}</td>
+                                <td className="border p-2 text-center">{line.receiptLineHSCode}</td>
                                 <td className="border p-2">{line.receiptLineName}</td>
                                 <td className="border p-2 text-center">{line.receiptLineQuantity}</td>
                                 <td className="border p-2 text-right">{line.receiptLinePrice.toFixed(2)}</td>
