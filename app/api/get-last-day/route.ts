@@ -44,8 +44,19 @@ export async function GET() {
             req.end();
         });
 
+        // Log the raw data for debugging purposes
+        console.log('Raw response data:', data);
+
+        if (!data) {
+            throw new Error('Empty response body received.');
+        }
+
+        // Try parsing the data only if it's not empty
         const parsedData = JSON.parse(data);
-        console.log('Last fiscal day response:', parsedData); // Log for debugging
+
+        // Log parsed data for debugging
+        console.log('Last fiscal day response:', parsedData);
+
         return NextResponse.json(parsedData);
     } catch (error) {
         console.error('Failed to fetch last fiscal day:', error);
