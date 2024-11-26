@@ -7,7 +7,7 @@ export async function postToFDMS(endpoint: string, data: object) {
     };
 
     try {
-        const response = await axios.post(`${process.env.ZIMRA_API_TEST_BASE_UR}${endpoint}`, data, { headers });
+        const response = await axios.post(`${process.env.ZIMRA_API_TEST_BASE_URL}${endpoint}`, data, { headers });
         return response.data;
     } catch (error: unknown) {
         // Check if the error is an AxiosError

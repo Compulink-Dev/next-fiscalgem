@@ -1,0 +1,49 @@
+{
+    "submitRequestRequest": [
+        {
+            "receipt": {
+                "receiptType": "FiscalInvoice",
+                "receiptCurrency": "ZWG", // From "Currency"
+                "receiptCounter": 4, // First entry, assumed
+                "receiptGlobalNo": 2788, // From Invoice Number (IN-000002786)
+                "invoiceNo": "IN-000002811", // Found in PDF
+                "buyerData": {
+                    "buyerRegisterName": "Central Africa Building Society"
+                },
+                "receiptDate": "2024-11-11T00:00:00", // Using provided date "23/10/2024"
+                "receiptLinesTaxInclusive": true,
+                "receiptLines": [
+                    {
+                        "receiptLineType": "Sale",
+                        "receiptLineNo": 1,
+                        "receiptLineName": "HDMI CABLE -20M",
+                        "receiptLinePrice": 1600.00,
+                        "receiptLineQuantity": 1,
+                        "receiptLineTotal": 1600.00,
+                        "taxPercent": 0, // Placeholder for example; modify if PDF specifies
+                        "taxID": 2000003966 // Placeholder for example
+                    }
+                ],
+                "receiptTaxes": [
+                    {
+                        "taxPercent": 0, // Example percent; check for actual tax rate
+                        "taxID": 2000003966, // Placeholder for example
+                        "taxAmount": 0, // Example calculation; adjust if data specifies
+                        "salesAmountWithTax": 1600.00 // Total with tax included
+                    }
+                ],
+                "receiptPayments": [
+                    {
+                        "moneyTypeCode": "Cash",
+                        "paymentAmount": 1600.00 // Placeholder based on example structure
+                    }
+                ],
+                "receiptTotal": 1600.00, // Total from PDF
+                "receiptDeviceSignature": {
+                    "hash": "76xNjs8qYKLNb0cc8OuvWhYOqzzCXz7Thm0kSBUtgqk=", // Example data
+                    "signature": "ctgeNqc+G5+1zmfQS6oLpC9O+fQzcStbcKUPSSM8IQ8+0Wj7ccACjy+R5s6xQAWkiVnnKmi8aLDwJz2SqsKGD57Zt6QJqqG7TfIxPzZHc73BB9pYt7tsTvSGa3f8SdydmfZHJuiEsZIRw0LbaGzqqnQK5oN4kdRYND6c4aK83SLYp027YgO7bixRED1mhXraYT5Nb2bSFMqKxSxyGa0tmdEfXswfvrIfPTR6pg0aC+Mc8zYEjmB4wtTS12SLbBpyb0JgpvqdAWf9AMccYdZE18Do0HIp+OIcz7HXIUPS24d/fzslyqrbMSje09GknJJDjAK0dj6pxIgkRlN/K9AWWQ==" // Placeholder for digital signature
+                }
+            }
+        }
+    ]
+}

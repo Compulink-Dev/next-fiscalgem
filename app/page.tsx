@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import ReceiptForm from './_components/ReceiptForm';
 
 const notify = () => toast('Here is your toast.');
 
@@ -27,7 +28,7 @@ export default function Home() {
   const [config, setConfig] = useState<Config | null>(null);
 
   const openFiscalDay = async () => {
-    const res = await fetch('/api/fiscal/open-day', {
+    const res = await fetch('/api/open-day', {
       method: 'POST',
     });
     const data = await res.json();
@@ -86,6 +87,14 @@ export default function Home() {
         </div>
       )}
       <button onClick={notify}>Make me a toast</button>
+      <div className="">
+        <ReceiptForm />
+      </div>
+      <div className="">
+        <Button className="no-print" onClick={() => window.print()}>
+          Print
+        </Button>
+      </div>
     </div>
   );
 }
