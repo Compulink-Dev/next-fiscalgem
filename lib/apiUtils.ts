@@ -13,7 +13,7 @@ export async function fetchData(endpoint: string, errorMessage: string) {
     };
 
     const agent = new https.Agent({
-        pfx: fs.readFileSync(path.resolve('/home/kronos/clientCert.pfx')),
+        pfx: Buffer.from(process.env.CLIENT_CERT_BASE64 as string, 'base64'),
         passphrase: process.env.CLIENT_CERT_PASSWORD,
     });
 
