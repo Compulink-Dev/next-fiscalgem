@@ -81,6 +81,8 @@ type ReceiptFormData = z.infer<typeof receiptSchema>;
 
 
 export default function CombinedForm() {
+
+
     const {
         receiptSignature,
         qrUrl,
@@ -117,16 +119,16 @@ export default function CombinedForm() {
                         receiptLinePrice: 0,
                         receiptLineQuantity: 1,
                         receiptLineTotal: 0,
-                        taxPercent: 0,
-                        taxCode: "2",
-                        taxID: 1,
+                        taxPercent: 15,
+                        taxCode: "1",
+                        taxID: 3,
                     },
                 ],
                 receiptTaxes: [
                     {
-                        taxCode: "2",
+                        taxCode: "1",
                         taxID: 3,
-                        taxPercent: 0,
+                        taxPercent: 15,
                         taxAmount: 0,
                         salesAmountWithTax: 0,
                     },
@@ -180,13 +182,6 @@ export default function CombinedForm() {
     }, [receiptTaxes, setValue]);
 
 
-    console.log('Tax Amount 2 :', receiptTaxes);
-
-    console.log("Updated Form State:", getValues("receipt.receiptTaxes"));
-
-    const testCalculation = 123.50 * (15 / 115);
-    console.log("Test Calculation:", testCalculation);
-
     const { fields: receiptLines, append: appendReceiptLine, remove: removeReceiptLine } = useFieldArray({
         control,
         name: 'receipt.receiptLines',
@@ -204,6 +199,43 @@ export default function CombinedForm() {
 
     const router = useRouter()
 
+    // Function to add a new receipt line with auto-incremented `receiptLineNo`
+    const handleAddReceiptLine = () => {
+        const currentLineNo = receiptLines.length > 0 ? receiptLines[receiptLines.length - 1].receiptLineNo : 0;
+        const currentTaxCode = receiptLines.length > 0 ? parseInt(receiptLines[receiptLines.length - 1].taxCode, 10) : 0;
+        const nextTaxCode = currentTaxCode + 1; // Increment taxCode similarly
+        appendReceiptLine({
+            receiptLineType: "Sale",
+            receiptLineNo: currentLineNo + 1, // Increment by 1
+            receiptLineHSCode: "",
+            receiptLineName: "",
+            receiptLinePrice: 0,
+            receiptLineQuantity: 1,
+            receiptLineTotal: 0,
+            taxPercent: 15,
+            taxCode: nextTaxCode.toString(), // Ensure taxCode is a string, as your example suggests it's a string
+            taxID: 1,
+        });
+    };
+
+    // Function to add a new receipt tax with auto-incremented `taxCode`
+    const handleAddReceiptTax = () => {
+        const currentTaxCode = receiptTaxesFields.length > 0
+            ? parseInt(receiptTaxesFields[receiptTaxesFields.length - 1].taxCode || '0', 10) // Fallback to '0' if taxCode is undefined
+            : 0; // Default to 0 if no receipt taxes exist
+        const nextTaxCode = currentTaxCode + 1; // Increment taxCode by 1
+
+        appendReceiptTax({
+            taxCode: nextTaxCode.toString(), // Set next taxCode as a string
+            taxPercent: 15, // Default value for taxPercent
+            taxID: 0, // Default value for taxID
+            taxAmount: 0, // Default value for taxAmount
+            salesAmountWithTax: 0, // Default value for salesAmountWithTax
+        });
+    };
+
+
+
     const onSubmit = async (data: ReceiptFormData) => {
         console.log("Form data submitted: ", data);
         console.log("Receipt Device Signature: ", data.receipt.receiptDeviceSignature);
@@ -220,6 +252,7 @@ export default function CombinedForm() {
         const calculateReceiptTotal = (receiptLines: ReceiptFormData["receipt"]["receiptLines"]) => {
             return receiptLines.reduce((total, line) => total + line.receiptLineTotal, 0);
         };
+
 
         try {
             console.log("Form data before submission: ", data);
@@ -253,28 +286,33 @@ export default function CombinedForm() {
                 }
             });
 
-
-
             console.log("Updated Taxes:", data.receipt.receiptTaxes)
-
-            const taxAmounts = data.receipt.receiptTaxes.map(tax => {
-                tax.taxAmount = parseFloat((tax.salesAmountWithTax * (tax.taxPercent / 115)).toFixed(2));
-                return tax.taxAmount;
-            });
-            console.log("Tax Amounts:", taxAmounts);
 
             const formattedDate = formatDate(data.receipt.receiptDate);
 
+            console.log("Plain date", data.receipt.receiptDate);
+
+
+            console.log("Date :", formattedDate);
+
+
+
+            const payload = {
+                deviceID: data.deviceID, // Ensure this field is not undefined
+                receiptType: data.receipt.receiptType, // Ensure this field is not undefined
+                receiptCurrency: data.receipt.receiptCurrency, // Ensure this field is not undefined
+                receiptDate: data.receipt.receiptDate,
+                receiptTotal: data.receipt.receiptTotal,
+                receiptTaxes: data.receipt.receiptTaxes,
+                receiptGlobalNo: data.receipt.receiptGlobalNo,
+            };
+
+            console.log("Payload sent to /api/hash:", payload);
             // Step 1: Generate Signature
             const signatureResponse = await fetch('/api/hash', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    receiptDate: data.receipt.receiptDate,
-                    receiptTotal: data.receipt.receiptTotal,
-                    receiptTaxes: data.receipt.receiptTaxes,
-                    receiptGlobalNo: data.receipt.receiptGlobalNo,
-                }),
+                body: JSON.stringify(payload),
             });
 
 
@@ -376,9 +414,9 @@ export default function CombinedForm() {
                 <div className="flex items-center justify-between gap-2">
                     <FormSelect label="Receipt Type:" name="receipt.receiptType"
                         options={[
-                            { value: "FiscalInvoice", label: "Fiscal Invoice" },
-                            { value: "CreditNote", label: "Credit Note" },
-                            { value: "DebitNote", label: "Debit Note" },
+                            { value: "FISCALINVOICE", label: "FISCALINVOICE" },
+                            { value: "CREDITNOTE", label: "CREDITNOTE" },
+                            { value: "DEBITNOTE", label: "DEBITNOTE" },
                         ]}
                         register={register}
                         error={errors.receipt?.receiptType}
@@ -439,8 +477,8 @@ export default function CombinedForm() {
                         <div className="flex items-center gap-2">
                             <FormSelect label="Receipt Line Type:" name={`receipt.receiptLines.${index}.receiptLineType`}
                                 options={[
-                                    { value: 0, label: "Sale" },
-                                    { value: 1, label: "Discount" },
+                                    { value: "Sale", label: "Sale" },
+                                    { value: "Discount", label: "Discount" },
                                 ]}
                                 register={register}
                                 error={errors.receipt?.receiptLines?.[index]?.receiptLineType}
@@ -482,9 +520,7 @@ export default function CombinedForm() {
                     variant={'outline'}
                     type="button"  // Prevents form submission
                     className='w-full text-green-700'
-                    onClick={() => appendReceiptLine({
-                        receiptLineType: '', receiptLineNo: 0, receiptLineHSCode: '', receiptLineName: '', receiptLinePrice: 0, receiptLineQuantity: 0, receiptLineTotal: 0, taxCode: '', taxPercent: 0, taxID: 0,
-                    })}>
+                    onClick={handleAddReceiptLine}>
                     <Plus />
                     <p className="">Add Line</p>
                 </Button>
@@ -547,11 +583,7 @@ export default function CombinedForm() {
                     variant={'outline'}
                     type="button"
                     className='w-full text-green-700'
-                    onClick={() =>
-                        appendReceiptTax({
-                            taxCode: '', taxPercent: 0, taxID: 0, taxAmount: 0, salesAmountWithTax: 0,
-                        })
-                    }
+                    onClick={handleAddReceiptTax} // Call the function when adding a tax
                 >
                     <Plus />
                     <p className="">Add Tax</p>

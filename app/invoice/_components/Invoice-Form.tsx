@@ -254,7 +254,7 @@ const Invoice: React.FC<InvoiceProps> = ({ data, qrUrl }) => {
 
                 {/* Right Section for Amount */}
                 <div className="flex-1 flex flex-row justify-between text-right gap-6">
-                    <p>Amount Excl TAX USD:</p>
+                    <p>Amount Excl TAX {receipt.receiptCurrency}:</p>
                     {/* <p>{safeReceiptTaxes[0]?.taxAmount.toFixed(2) || "0.00"} {receipt.receiptCurrency}</p> */}
                     <p>{totalTaxes.toFixed(2)} {receipt.receiptCurrency}</p>
                 </div>

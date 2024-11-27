@@ -1,173 +1,114 @@
-import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import axios from 'axios';
-import https from 'https';
-import Receipt from '@/models/Receipt';
-import { dbConnect } from '@/lib/db';
-import fs from 'fs';
-import path from 'path';
+import { NextResponse } from 'next/server';
 
 interface Tax {
     taxID: number;
-    taxAmount: number;
+    taxCode: string;
     taxPercent?: number;
+    taxAmount: number;
     salesAmountWithTax: number;
 }
 
 interface Payload {
-    receiptDate: string;
-    receiptTotal: number | string;
-    receiptTaxes: Tax[];
+    deviceID: string | 19034;
+    receiptType: string;
+    receiptCurrency: string;
     receiptGlobalNo: string;
+    receiptDate: string; // ISO 8601 format
+    receiptTotal: number; // In cents
+    receiptTaxes: Tax[];
+    previousReceiptHash?: string;
 }
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
     try {
-        await dbConnect();
+        const payload: Payload = await req.json();
 
-        const { deviceID, receipt } = await request.json();
+        console.log('Received payload in /api/hash:', payload);
 
-        // Step 1: Validate initial input
-        if (!deviceID || !receipt || Object.keys(receipt).length === 0) {
-            return NextResponse.json(
-                { success: false, error: 'DeviceID or receipt data is missing in the request body.' },
-                { status: 400 }
-            );
-        }
 
-        const requiredFields = ['receiptDate', 'receiptTotal', 'receiptGlobalNo'];
-        const missingFields = requiredFields.filter((field) => !receipt[field as keyof Payload]);
-        if (missingFields.length > 0) {
-            return NextResponse.json(
-                { success: false, error: `Invalid payload: Missing fields (${missingFields.join(', ')})` },
-                { status: 400 }
-            );
-        }
 
-        // Step 2: Validate receipt date
-        const receiptDate = new Date(receipt.receiptDate);
-        if (isNaN(receiptDate.getTime())) {
-            return NextResponse.json({ success: false, error: 'Invalid receiptDate: Must be a valid date' }, { status: 400 });
-        }
-        const formattedReceiptDate = receiptDate.toISOString().split('T')[0];
-
-        // Step 3: Validate receipt total
-        const receiptTotalInCents = Math.round(Number(receipt.receiptTotal) * 100);
-        if (isNaN(receiptTotalInCents)) {
-            return NextResponse.json({ success: false, error: 'Invalid receiptTotal: Must be a valid number' }, { status: 400 });
-        }
-
-        // Step 4: Format taxes
-        const formattedTaxes = (receipt.receiptTaxes || []).map((tax: Partial<Tax>) => ({
-            taxID: tax.taxID ?? 0,
-            taxAmount: Math.round(Number(tax.taxAmount) || 0),
-            taxPercent: parseFloat(tax.taxPercent?.toString() || '0'),
-            salesAmountWithTax: Math.round(Number(tax.salesAmountWithTax) || 0),
-        }));
-
-        // Step 5: Prepare signing data
-        const receiptGlobalNo = String(receipt.receiptGlobalNo).padStart(10, '0');
-        const signingData = {
-            receiptDate: formattedReceiptDate,
-            receiptTotal: receiptTotalInCents,
-            receiptTaxes: formattedTaxes,
-            receiptGlobalNo,
-        };
-
-        // Step 6: Generate MD5 hash and signature
-        const signingDataString = JSON.stringify(signingData, Object.keys(signingData).sort());
-        const md5DataHash = crypto.createHash('md5').update(signingDataString, 'utf8').digest('hex');
-
+        // Check private key
         const privateKey = process.env.PRIVATE_KEY;
         if (!privateKey || !privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+            console.error('Invalid private key configuration.');
             return NextResponse.json(
-                { success: false, error: 'Server configuration error: Invalid private key' },
+                { error: 'Server configuration error: Invalid private key' },
                 { status: 500 }
             );
         }
 
-        let signature;
-        try {
-            const bufferToSign = Buffer.from(md5DataHash, 'hex');
-            const encryptedBuffer = crypto.privateEncrypt(
-                {
-                    key: privateKey,
-                    padding: crypto.constants.RSA_PKCS1_PADDING,
-                },
-                bufferToSign
-            );
-            signature = encryptedBuffer.toString('base64');
-        } catch (error: any) {
-            console.error("Error signing data:", error);
-            return NextResponse.json(
-                { success: false, error: 'Failed to sign data', details: error.message },
-                { status: 500 }
-            );
+
+        // Parse and validate receiptDate
+        const receiptDate = new Date(payload.receiptDate);
+        if (isNaN(receiptDate.getTime())) {
+            return NextResponse.json({ error: 'Invalid receiptDate: Must be a valid date' }, { status: 400 });
+        }
+        const formattedReceiptDate = receiptDate.toISOString().split('T')[0]; // Format to YYYY-MM-DD
+
+        // Ensure receiptTotal is a valid number
+        const receiptTotalInCents = Math.round(Number(payload.receiptTotal));
+        if (isNaN(receiptTotalInCents)) {
+            return NextResponse.json({ error: 'Invalid receiptTotal: Must be a valid number' }, { status: 400 });
         }
 
-        // Step 7: Validate certificate file
-        const certPath = path.resolve('/home/kronos/clientCert.pfx');
-        if (!fs.existsSync(certPath)) {
-            return NextResponse.json(
-                { success: false, error: `Certificate file not found at ${certPath}` },
-                { status: 500 }
-            );
-        }
-        if (!process.env.CLIENT_CERT_PASSWORD) {
-            return NextResponse.json(
-                { success: false, error: 'Server configuration error: Missing certificate password' },
-                { status: 500 }
-            );
-        }
+        // Concatenate `receiptTaxes` as per rules
+        const formattedTaxes = payload.receiptTaxes
+            .sort((a, b) => a.taxID - b.taxID || a.taxCode.localeCompare(b.taxCode))
+            .map((tax) => {
+                const taxPercent = tax.taxPercent != null
+                    ? tax.taxPercent.toFixed(2)
+                    : '';
+                return `${tax.taxCode || ''}${taxPercent}${Math.round(tax.taxAmount)}${Math.round(tax.salesAmountWithTax)}`;
+            })
+            .join('');
 
-        const httpsAgent = new https.Agent({
-            pfx: fs.readFileSync(certPath),
-            passphrase: process.env.CLIENT_CERT_PASSWORD,
-        });
+        // Ensure receiptGlobalNo is padded
+        const receiptGlobalNo = String(payload.receiptGlobalNo).padStart(10, '0');
 
-        // Step 8: Prepare and submit the receipt
-        const receiptToSubmit = {
-            ...receipt,
+        // Concatenate all fields in the specified order
+        const concatenatedString = [
+            payload.deviceID,
+            payload.receiptType,
+            payload.receiptCurrency,
             receiptGlobalNo,
-            receiptDeviceSignature: { hash: md5DataHash, signature },
-        };
+            formattedReceiptDate,
+            receiptTotalInCents,
+            formattedTaxes,
+            payload.previousReceiptHash || ''
+        ].join('');
 
-        const headers = {
-            'Content-Type': 'application/json',
-            'DeviceModelName': 'Server',
-            'DeviceModelVersion': 'v1',
-        };
+        console.log('Concatenated String:', concatenatedString);
 
-        let apiResponse;
-        try {
-            apiResponse = await axios.post(
-                `https://fdmsapitest.zimra.co.zw/Device/v1/${deviceID}/submitReceipt`,
-                { deviceID, receipt: receiptToSubmit },
-                { headers, httpsAgent }
-            );
-        } catch (error: any) {
-            console.error("API request error:", error.response?.data || error.message);
-            return NextResponse.json(
-                { success: false, error: 'Failed to submit receipt to FDMS API', details: error.response?.data || error.message },
-                { status: 500 }
-            );
-        }
+        // Generate MD5 hash of the concatenated string
+        const receiptHash = crypto.createHash('md5').update(concatenatedString, 'utf8').digest('base64');
+        console.log('Generated Receipt Hash (Base64):', receiptHash);
 
-        // Step 9: Save receipt to database
-        const savedReceipt = await Receipt.create(receiptToSubmit);
+        // Sign the hash using the private key
+        const bufferToSign = Buffer.from(receiptHash, 'base64');
+        const signature = crypto.privateEncrypt(
+            {
+                key: privateKey,
+                padding: crypto.constants.RSA_PKCS1_PADDING,
+            },
+            bufferToSign
+        ).toString('base64');
+        console.log('Generated Signature (Base64):', signature);
 
-        // Step 10: Return response
-        return NextResponse.json({
-            success: true,
-            receiptDeviceSignature: { hash: md5DataHash, signature },
-            apiResponse: apiResponse.data,
-            savedReceipt,
-        });
-    } catch (error: any) {
-        console.error("Unexpected error:", error.message || error);
-        return NextResponse.json(
-            { success: false, error: 'Unexpected server error', details: error.message || error },
-            { status: 500 }
+        // Response
+        return new Response(
+            JSON.stringify({
+                receiptHash,
+                signature,
+                concatenatedString
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+    } catch (error) {
+        console.error('Error generating receipt signature:', error);
+        return new Response(
+            JSON.stringify({ error }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
         );
     }
 }
