@@ -1,18 +1,26 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
-const fiscalCounterSchema = new Schema({
-    fiscalDay: { type: Date, required: true },
-    saleByTax: { type: Number, default: 0 },
-    saleTaxByTax: { type: Number, default: 0 },
-    creditNoteByTax: { type: Number, default: 0 },
-    creditNoteTaxByTax: { type: Number, default: 0 },
-    debitNoteByTax: { type: Number, default: 0 },
-    debitNoteTaxByTax: { type: Number, default: 0 },
-    balanceByMoneyType: { type: Number, default: 0 },
-    currency: { type: String, required: true },
-    tax: { type: String, required: true },
-    paymentMethod: { type: String, required: true },
-    fiscalDayReportSent: { type: Boolean, default: false },
-}, { timestamps: true });
+interface IFiscalCounter extends Document {
+    fiscalCounterType: string;
+    fiscalCounterCurrency: string;
+    fiscalCounterTaxPercent?: number | null;
+    fiscalCounterMoneyType?: string;
+    fiscalCounterValue: number;
+    createdAt: Date;
+}
 
-export const FiscalCounter = models.FiscalCounter || model('FiscalCounter', fiscalCounterSchema);
+const FiscalCounterSchema: Schema = new Schema(
+    {
+        fiscalCounterType: { type: String, required: true },
+        fiscalCounterCurrency: { type: String, required: true },
+        fiscalCounterTaxPercent: { type: Number, required: false },
+        fiscalCounterMoneyType: { type: String, required: false },
+        fiscalCounterValue: { type: Number, required: true },
+        createdAt: { type: Date, default: Date.now },
+    },
+    { timestamps: true }
+);
+
+const FiscalCounter = mongoose.model<IFiscalCounter>("FiscalCounter", FiscalCounterSchema);
+
+export default FiscalCounter;

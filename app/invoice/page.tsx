@@ -76,9 +76,11 @@ export default function App() {
     console.log("Frontend Payload  :", parsedPayload);
     console.log("Fixed Payload :", payload);
 
+    // Fallback logic in case finalPayload is not available
+    const displayPayload = finalPayload ? parsedPayload : payload;
 
     if (!receiptSignature) return <div>No data available</div>;
     // <Invoice data={finalPayload!} qrUrl={qrUrl} payload={JSON.stringify(finalPayload)} />
-    return <Invoice data={parsedPayload} qrUrl={qrUrl} />;
+    return <Invoice data={displayPayload} qrUrl={qrUrl} />;
     // return <Invoice data={payload} />;
 }

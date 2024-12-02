@@ -3,6 +3,7 @@ import axios from 'axios';
 import https from 'https';
 import Receipt from '@/models/Receipt';
 import { dbConnect } from '@/lib/db';
+// import { connectDB } from '@/lib/connectDB';
 
 
 export async function POST(request: Request) {

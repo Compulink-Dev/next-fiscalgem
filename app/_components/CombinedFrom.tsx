@@ -3,18 +3,19 @@
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, } from "lucide-react";
 import Title from "./Title";
-import QRCode from "react-qr-code";
 import { Separator } from "@/components/ui/separator";
 import FormInput from "./FormInput";
 import md5 from "md5";
-import Link from "next/link";
 import { useReceiptStore } from "@/lib/useReceiptStore";
 import { useRouter } from "next/navigation";
 import FormSelect from "./FromSelect";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import QRCode from 'react-qr-code';
+import Link from "next/link";
 // import FormDisabled from "./FormDisabled";
 
 // Define schema
@@ -23,7 +24,7 @@ const receiptSchema = z.object({
     receipt: z.object({
         receiptType: z.string().min(1, "Receipt Type is required"), receiptCurrency: z.string().min(1, "Currency is required"), receiptCounter: z.number().min(1, "Counter must be valid"), receiptGlobalNo: z.number().min(1, "Global Number must be valid"), invoiceNo: z.string().min(1, "Invoice Number is required"),
         buyerData: z.object({
-            buyerRegisterName: z.string(),
+            buyerRegisterName: z.string().min(1, 'buyerData.buyerRegisterName` is required.'),
             buyerTradeName: z.string(),
             vatNumber: z.string().min(9, "Vat Number must be min length of 9").max(9, 'Vat Number must be max length of 9').optional(),
             buyerTIN: z.string().min(10, "Buyer TIN must be min length of 10").max(10, 'Buyer TIN must be max length of 10').optional(),
@@ -49,13 +50,13 @@ const receiptSchema = z.object({
         receiptNotes: z.string().optional(),
         receiptLines: z.array(
             z.object({
-                receiptLineType: z.string().min(1, "Line Type is required"), receiptLineNo: z.number().min(1, "Line Number is required"), receiptLineHSCode: z.string().max(8, "HS Code must be a string with a maximum length of 8").optional(), receiptLineName: z.string().min(1, "Line Name is required"), receiptLinePrice: z.number().min(0, "Price must be valid"), receiptLineQuantity: z.number().min(1, "Quantity must be valid"), receiptLineTotal: z.number().min(0, "Total must be valid"), taxPercent: z.number().min(0, "Tax Percent must be valid"), taxCode: z.string().min(0, "Tax Code must be valid").max(3, "Tax Code must be a string with a maximum length of 3"), taxID: z.number().min(0, "Tax ID must be valid").max(3, "Tax Code must be a string with a maximum length of 3"),
+                receiptLineType: z.string().min(1, "Line Type is required"), receiptLineNo: z.number().min(1, "Line Number is required"), receiptLineHSCode: z.string().max(8, "HS Code must be a string with a maximum length of 8").optional(), receiptLineName: z.string().min(1, "Line Name is required"), receiptLinePrice: z.number().min(0, "Price must be valid"), receiptLineQuantity: z.number().min(1, "Quantity must be valid"), receiptLineTotal: z.number().min(0, "Total must be valid"), taxPercent: z.number().min(0, "Tax Percent must be valid"), taxCode: z.string().min(0, "Tax Code must be valid").max(3, "Tax Code must be a string with a maximum length of 3"), taxID: z.number().min(0, "Tax ID must be valid"),
             })
         ),
         receiptTaxes: z.array(
             z.object({
-                taxCode: z.string().min(0, "Tax Code must be valid").optional(),
-                taxID: z.number().min(0, "Tax ID must be valid").max(3, "Tax Code must be a string with a maximum length of 3"),
+                taxCode: z.string().min(0, "Tax Code must be valid").max(3, "Tax Code must be a string with a maximum length of 3").optional(),
+                taxID: z.number().min(0, "Tax ID must be valid"),
                 taxPercent: z.number().min(0, "Tax Percent must be valid"),
                 taxAmount: z.number().min(0, "Tax Amount must be valid"),
                 salesAmountWithTax: z.number().min(0, "Sales Amount must be valid"),
@@ -81,12 +82,14 @@ type ReceiptFormData = z.infer<typeof receiptSchema>;
 
 
 export default function CombinedForm() {
-
+    const [previousHash, setPreviousHash] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null); // Error message
+    const [dialogOpen, setDialogOpen] = useState(false); // Dialog visibility
 
     const {
         receiptSignature,
         qrUrl,
-        error,
         md5Hash16,
         finalPayload,
         setReceiptSignature,
@@ -103,6 +106,23 @@ export default function CombinedForm() {
             deviceID: 19034,
             receipt: {
                 receiptType: "0",
+                buyerData: ({
+                    buyerRegisterName: '',
+                    buyerTradeName: '',
+                    vatNumber: '',
+                    buyerTIN: '',
+                    buyerAddress: {
+                        province: 'Harare',
+                        city: 'Harare',
+                        street: 'Harare',
+                        houseNo: 'Harare',
+                        district: 'Harare'
+                    },
+                    buyerContacts: {
+                        email: '',
+                        phoneNo: ''
+                    }
+                }),
                 receiptCurrency: "USD",
                 receiptCounter: 1,
                 receiptGlobalNo: 1,
@@ -114,7 +134,7 @@ export default function CombinedForm() {
                     {
                         receiptLineType: "1",
                         receiptLineNo: 1,
-                        receiptLineHSCode: "112",
+                        receiptLineHSCode: "11223344",
                         receiptLineName: "",
                         receiptLinePrice: 0,
                         receiptLineQuantity: 1,
@@ -141,9 +161,15 @@ export default function CombinedForm() {
             },
         }
     });
-
-    // Watch the receiptTaxes array
+    // Watch the form fields:
+    const receiptCounter = watch("receipt.receiptCounter");
+    const receiptGlobalNo = watch("receipt.receiptGlobalNo");
     const receiptTaxes = watch("receipt.receiptTaxes");
+    const receiptType = watch("receipt.receiptType");
+
+    console.log("Receipt Counter:", receiptCounter);
+    console.log("Receipt Global No:", receiptGlobalNo);
+    console.log("Receipt Type:", receiptType);
 
     useEffect(() => {
         console.log("Watched receiptTaxes:", receiptTaxes);
@@ -240,6 +266,10 @@ export default function CombinedForm() {
         console.log("Form data submitted: ", data);
         console.log("Receipt Device Signature: ", data.receipt.receiptDeviceSignature);
 
+        setLoading(true); // Start loading
+
+
+
         const formatDate = (date: string) => {
             const dateObj = new Date(date);
             const dd = String(dateObj.getDate()).padStart(2, '0');
@@ -250,7 +280,12 @@ export default function CombinedForm() {
 
         // Calculate receipt total dynamically
         const calculateReceiptTotal = (receiptLines: ReceiptFormData["receipt"]["receiptLines"]) => {
-            return receiptLines.reduce((total, line) => total + line.receiptLineTotal, 0);
+            let total = 0;
+            receiptLines.forEach(line => {
+                console.log("Receipt Line Total:", line.receiptLineTotal); // Log individual line totals
+                total += line.receiptLineTotal;
+            });
+            return total;
         };
 
 
@@ -271,6 +306,7 @@ export default function CombinedForm() {
                 const relatedLines = data.receipt.receiptLines.filter(
                     line => line.taxCode === tax.taxCode && line.taxPercent === tax.taxPercent
                 );
+                console.log("Tax for receipt line: ", tax);
 
                 // Sum up receiptLineTotal for the related lines
                 const totalLineAmount = relatedLines.reduce((sum, line) => sum + line.receiptLineTotal, 0);
@@ -305,9 +341,13 @@ export default function CombinedForm() {
                 receiptTotal: data.receipt.receiptTotal,
                 receiptTaxes: data.receipt.receiptTaxes,
                 receiptGlobalNo: data.receipt.receiptGlobalNo,
+                receiptCounter: data.receipt.receiptCounter,
+                previousReceiptHash: previousHash || '', // Include previous hash if not first receipt
             };
 
             console.log("Payload sent to /api/hash:", payload);
+
+
             // Step 1: Generate Signature
             const signatureResponse = await fetch('/api/hash', {
                 method: 'POST',
@@ -315,19 +355,33 @@ export default function CombinedForm() {
                 body: JSON.stringify(payload),
             });
 
-
             if (!signatureResponse.ok) {
-                console.error("Failed to generate signature:", await signatureResponse.text());
-                throw new Error('Failed to generate signature');
+                const errorMessage = await signatureResponse.text();
+                console.error("Failed to generate signature:", errorMessage);
+                throw new Error(errorMessage); // Throw error to be caught in the catch block
+                // Show error in dialog
+                setErrorMessage(errorMessage);
+                setDialogOpen(true); // Open the dialog
             }
             const result = await signatureResponse.json();
 
+            data.receipt.receiptGlobalNo = result.receiptGlobalNo;
+            data.receipt.receiptCounter = result.receiptCounter;
+
+
+            console.log('From Hash Payload', result);
+            console.log("Receipt Counter 2:", data.receipt.receiptCounter);
+            console.log("Receipt Global No 2:", data.receipt.receiptGlobalNo);
 
             console.log("Device Signature :", result.receiptDeviceSignature);
-
-
             // Attach the generated signature
             data.receipt.receiptDeviceSignature = result.receiptDeviceSignature;
+
+
+
+            // Save the current hash as the previous hash for the next receipt
+            const currentReceiptHash = result.receiptDeviceSignature.hash;
+            setPreviousHash(currentReceiptHash); // Save it for next receipt submission
 
 
             setReceiptSignature(result.receiptDeviceSignature);
@@ -358,7 +412,7 @@ export default function CombinedForm() {
             };
 
             // Step 2: Submit to FDMS
-            const submissionResponse = await fetch('/api/submit', {
+            const submissionResponse = await fetch('/api/submit-receipt', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(finalData),
@@ -371,13 +425,19 @@ export default function CombinedForm() {
 
 
             if (!submissionResponse.ok) {
-                console.error("Failed to submit receipt:", await submissionResponse.text());
-                throw new Error('Failed to submit receipt to FDMS');
+                const errorMessage = await submissionResponse.text();
+                console.error("Failed to submit receipt:", errorMessage);
+                throw new Error(errorMessage); // Throw error to be caught in the catch block
+                // Show error in dialog
+                setErrorMessage(errorMessage);
+                setDialogOpen(true); // Open the dialog
             }
 
 
             const submissionResult = await submissionResponse.json();
             console.log("Submission Result:", submissionResult);
+
+            console.log("Receipt Lines before submission: ", data.receipt.receiptLines);
 
 
 
@@ -394,7 +454,10 @@ export default function CombinedForm() {
                 setError(submissionResult.error || 'Submission failed');
             }
         } catch (error) {
-            setError(error instanceof Error ? error.message : 'An unknown error occurred');
+            const message = error instanceof Error ? error.message : "An unknown error occurred";
+            setError(message);
+            setErrorMessage(message);
+            setDialogOpen(true); // Open the dialog
             setResponse(null);
             console.error("Error submitting data:", error);
         }
@@ -430,10 +493,10 @@ export default function CombinedForm() {
                         error={errors.receipt?.receiptCurrency}
                     />
                 </div>
-                <div className="flex items-center justify-between gap-2">
+                {/* <div className="flex items-center justify-between gap-2">
                     <FormInput label="Receipt Counter:" name="receipt.receiptCounter" type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptCounter} />
                     <FormInput label="Receipt Global No:" name="receipt.receiptGlobalNo" type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptGlobalNo} />
-                </div>
+                </div> */}
                 <div className="flex items-center justify-between gap-2">
                     <FormInput label="Invoice No:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
                     <FormInput label="Receipt Date:" name="receipt.receiptDate" type="datetime-local" register={register} error={errors.receipt?.receiptDate} />
@@ -470,6 +533,41 @@ export default function CombinedForm() {
 
                 <Separator className='my-4 bg-green-700' />
 
+                {
+                    receiptType === "CREDITNOTE" && (
+                        <div className="">
+                            <h3 className='font-bold text-green-700'>Credit Note:</h3>
+                            <div className="flex items-center justify-between gap-2">
+                                <FormInput label="Receipt ID:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
+                                <FormInput label="Device ID:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                                <FormInput label="Receipt Global No:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
+                                <FormInput label="Fiscal Day No:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
+                            </div>
+                            <Separator className='my-4 bg-green-700' />
+                        </div>
+                    )
+                }
+
+                {
+                    receiptType === "DEBITNOTE" && (
+                        <div className="">
+                            <h3 className='font-bold text-green-700'>Debit Note:</h3>
+                            <div className="flex items-center justify-between gap-2">
+                                <FormInput label="Receipt ID:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
+                                <FormInput label="Device ID:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                                <FormInput label="Receipt Global No:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
+                                <FormInput label="Fiscal Day No:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
+                            </div>
+                            <Separator className='my-4 bg-green-700' />
+                        </div>
+                    )
+                }
+
+
                 {/* Receipt Lines */}
                 <h3 className='font-bold text-green-700'>Receipt Lines:</h3>
                 {receiptLines.map((item, index) => (
@@ -495,11 +593,16 @@ export default function CombinedForm() {
                         </div>
                         <div className="flex items-center gap-2">
                             <FormInput label="Receipt Line Total:" name={`receipt.receiptLines.${index}.receiptLineTotal`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptLines?.[index]?.receiptLineTotal} />
-                            <FormInput label="Tax Code*:" name={`receipt.receiptLines.${index}.taxCode`} type="text" register={register} error={errors.receipt?.receiptLines?.[index]?.taxCode} />
+
                         </div>
                         <div className="flex items-center gap-2">
-                            <FormInput label="Tax Percent*:" name={`receipt.receiptLines.${index}.taxPercent`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptLines?.[index]?.taxPercent} />
+                            <FormInput label="Tax Code*:" name={`receipt.receiptLines.${index}.taxCode`} type="text" register={register} error={errors.receipt?.receiptLines?.[index]?.taxCode} />
+                            {/* <FormInput label="Tax Percent*:" name={`receipt.receiptLines.${index}.taxPercent`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptLines?.[index]?.taxPercent} /> */}
                             <FormSelect label="Tax ID:" name={`receipt.receiptLines.${index}.taxID`}
+                                onChangeCallback={(selectedOption) => {
+                                    const taxPercent = Number(selectedOption?.label) || 0; // Default to 0 if undefined
+                                    setValue(`receipt.receiptLines.${index}.taxPercent`, taxPercent);
+                                }}
                                 options={[
                                     { value: 2, label: "0" },
                                     { value: 1, label: "Exempted" },
@@ -532,12 +635,17 @@ export default function CombinedForm() {
                 {receiptTaxesFields.map((item, index) => (
                     <div key={item.id}>
                         <div className="flex items-center gap-2">
-                            <FormInput label="Tax Code*:" name={`receipt.receiptTaxes.${index}.taxCode`} type="text" register={register} error={errors.receipt?.receiptTaxes?.[index]?.taxCode} />
-                            <FormInput label="Tax Percent*:" name={`receipt.receiptTaxes.${index}.taxPercent`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptTaxes?.[index]?.taxPercent} />
+
+                            {/* <FormInput label="Tax Percent*:" name={`receipt.receiptTaxes.${index}.taxPercent`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptTaxes?.[index]?.taxPercent} /> */}
                         </div>
                         <div className="flex items-center gap-2">
+                            <FormInput label="Tax Code*:" name={`receipt.receiptTaxes.${index}.taxCode`} type="text" register={register} error={errors.receipt?.receiptTaxes?.[index]?.taxCode} />
                             {/* <FormInput label="Tax ID:" name={`receipt.receiptTaxes.${index}.taxID`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptTaxes?.[index]?.taxID} /> */}
                             <FormSelect label="Tax ID:" name={`receipt.receiptTaxes.${index}.taxID`}
+                                onChangeCallback={(selectedOption) => {
+                                    const taxPercent = Number(selectedOption?.label) || 0; // Default to 0 if undefined
+                                    setValue(`receipt.receiptTaxes.${index}.taxPercent`, taxPercent);
+                                }}
                                 options={[
                                     { value: 2, label: "0" },
                                     { value: 1, label: "Exempted" },
@@ -631,7 +739,9 @@ export default function CombinedForm() {
 
                 {/* Submit Button */}
                 <div className="w-full">
-                    <Button type="submit" className='bg-green-700 hover:bg-green-500 mt-4 w-full'>Submit Receipt</Button>
+                    <Button type="submit" className='bg-green-700 hover:bg-green-500 mt-4 w-full'>
+                        {loading ? "Submitting..." : "Submit Receipt"}
+                    </Button>
                 </div>
 
                 {/* Display Signature and QR Code */}
@@ -676,7 +786,7 @@ export default function CombinedForm() {
 
                             )}
 
-                            {/* Display Final Payload */}
+                            Display Final Payload
                             {finalPayload ? (
                                 <div className="text-ellipsis text-xs overflow-hidden" style={{ wordBreak: "break-all" }}>
                                     <h3 className="font-bold">Final Payload to API:</h3>
@@ -687,10 +797,24 @@ export default function CombinedForm() {
                         </div>
                     </div>
                 )}
+
             </form>
+            {/* Error Dialog */}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent>
+                    <DialogTitle className="text-red-700">Error</DialogTitle>
+                    <DialogDescription>
+                        {errorMessage || "An unknown error occurred."}
+                    </DialogDescription>
+                    <DialogFooter>
+                        <Button
+                            className="bg-red-700 hover:bg-red-500"
+                            onClick={() => setDialogOpen(false)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
-
-            {error && <div className="text-red-600">{error}</div>}
+            {/* {error && <div className="text-red-600">{error}</div>} */}
 
         </div>
     );

@@ -88,7 +88,6 @@ const bankDetails = [
     },
 ];
 
-
 const BankDetails = ({ detail }: { detail: typeof bankDetails[0] }) => {
     return (
         <div className="text-xs">
@@ -101,7 +100,6 @@ const BankDetails = ({ detail }: { detail: typeof bankDetails[0] }) => {
         </div>
     );
 };
-
 
 
 const Invoice: React.FC<InvoiceProps> = ({ data, qrUrl }) => {
@@ -117,17 +115,24 @@ const Invoice: React.FC<InvoiceProps> = ({ data, qrUrl }) => {
         return <div className="text-red-500">Error: Receipt data is unavailable.</div>;
     }
 
+
     const { buyerData, receiptLines, receiptTotal } = receipt;
 
-    // Safely handle `receiptLines` and `receiptTaxes`
     const safeReceiptLines = Array.isArray(receiptLines) ? receiptLines : [];
-    // const safeReceiptTaxes = Array.isArray(receiptTaxes) ? receiptTaxes : [];
 
 
-    const totalPercentage = receiptTotal.toFixed(2) / (115 / 15)
-    console.log('Percentage : ', totalPercentage);
+    // Calculate the total taxes for all lines by iterating through each line
+    const totalTaxes = safeReceiptLines.reduce((sum, line) => {
+        const lineTax = (line.receiptLinePrice * line.receiptLineQuantity) * line.taxPercent / (100 + line.taxPercent);
+        return sum + lineTax;
+    }, 0);
 
-    const totalTaxes = receiptTotal.toFixed(2) - totalPercentage
+    console.log('Total Taxes', totalTaxes);
+
+    const amountExclTax = receiptTotal - totalTaxes;
+
+    console.log('Amount Exc Tax', amountExclTax);
+
 
 
     return (
@@ -157,7 +162,12 @@ const Invoice: React.FC<InvoiceProps> = ({ data, qrUrl }) => {
 
             {/* Invoice Title */}
             <div className="text-center my-4">
-                <h1 className="text-xl font-bold">FISCAL TAX INVOICE</h1>
+                <h1 className="text-xl font-bold">
+                    {receipt.receiptType === "FISCALINVOICE" ? "FISCAL TAX INVOICE" :
+                        receipt.receiptType === "CREDITNOTE" ? "CREDIT NOTE" :
+                            receipt.receiptType === "DEBITNOTE" ? "DEBIT NOTE" :
+                                receipt.receiptType} {/* Default fallback if no match */}
+                </h1>
             </div>
 
             {/* Seller and Buyer Information */}
@@ -178,9 +188,9 @@ const Invoice: React.FC<InvoiceProps> = ({ data, qrUrl }) => {
                     <h2 className="font-bold">BUYER</h2>
                     <p>{buyerData?.buyerRegisterName || "N/A"}</p>
                     <p>TIN: {buyerData?.buyerTIN || "N/A"}</p>
-                    {/* <p>{buyerData?.buyerTradeName || "N/A"}</p> */}
-                    <p>Email: {buyerData?.buyerContacts?.email || "N/A"}</p>
-                    <p>Phone: {buyerData?.buyerContacts?.phoneNo || "N/A"}</p>
+                    <p>VAT No: {buyerData?.vatNumber || ""}</p>
+                    <p>Email: {buyerData?.buyerContacts?.email || ""}</p>
+                    <p>Phone: {buyerData?.buyerContacts?.phoneNo || ""}</p>
                     <p>
                         Address:{" "}
                         {`${buyerData?.buyerAddress?.street || ""}, ${buyerData?.buyerAddress?.city || ""}`}
@@ -198,13 +208,37 @@ const Invoice: React.FC<InvoiceProps> = ({ data, qrUrl }) => {
                     <p><strong>Device Serial No:</strong> {data.deviceID}</p>
                 </div>
                 <div>
-                    <p><strong>Fiscal Day No:</strong> {receipt.receiptCounter}</p>
+                    <p><strong>Fiscal Day No:</strong> {receipt.receiptGlobalNo}</p>
                     <p><strong>Date:</strong> {new Date(receipt.receiptDate).toLocaleString()}</p>
                     <p><strong>Fiscal Device ID:</strong> {data.deviceID}</p>
                 </div>
             </div>
 
             <Separator className="my-4 h-[1.5px] rounded bg-black" />
+
+            {(receipt.receiptType === "CREDITNOTE" || receipt.receiptType === "DEBITNOTE") && (
+                <>
+                    <div className="text-center my-4">
+                        <h1 className="text-xl font-bold">
+                            {receipt.receiptType === "CREDITNOTE" ? "CREDIT NOTE" : "DEBIT NOTE"}
+                        </h1>
+                    </div>
+
+                    {/* Credit/Debit Invoice Details */}
+                    <div className="grid grid-cols-2 gap-6 mt-4">
+                        <div>
+                            <p><strong>Invoice No:</strong> {receipt.invoiceNo}</p>
+                            <p><strong>Customer reference No:</strong> {receipt.invoiceNo}</p>
+                            <p><strong>Device Serial No:</strong> {data.deviceID}</p>
+                        </div>
+                        <div>
+                            <p><strong>Date:</strong> {new Date(receipt.receiptDate).toLocaleString()}</p>
+                        </div>
+                    </div>
+
+                    <Separator className="my-4 h-[1.5px] rounded bg-black" />
+                </>
+            )}
 
             {/* Line Items Table */}
             <table className="w-full mt-6 border border-collapse text-sm">
@@ -220,17 +254,22 @@ const Invoice: React.FC<InvoiceProps> = ({ data, qrUrl }) => {
                 </thead>
                 <tbody>
                     {safeReceiptLines.length > 0 ? (
-                        safeReceiptLines.map((line, index) => (
-                            <tr key={index} className="border">
-                                <td className="border p-2 text-center">{line.receiptLineHSCode}</td>
-                                <td className="border p-2">{line.receiptLineName}</td>
-                                <td className="border p-2 text-center">{line.receiptLineQuantity}</td>
-                                <td className="border p-2 text-right">{line.receiptLinePrice.toFixed(2)}</td>
-                                {/* <td className="border p-2 text-right">{line.taxPercent.toFixed(2)}%</td> */}
-                                <td className="border p-2 text-right">{totalPercentage.toFixed(2)}</td>
-                                <td className="border p-2 text-right">{line.receiptLineTotal.toFixed(2)}</td>
-                            </tr>
-                        ))
+                        safeReceiptLines.map((line, index) => {
+                            const lineTax = (line.receiptLinePrice * line.receiptLineQuantity) * line.taxPercent / (100 + line.taxPercent);
+
+                            return (
+                                <tr key={index} className="border">
+                                    <td className="border p-2">{line.receiptLineHSCode}</td>
+                                    <td className="border p-2">{line.receiptLineName}</td>
+                                    <td className="border p-2 text-center">{line.receiptLineQuantity}</td>
+                                    <td className="border p-2 text-right">{line.receiptLinePrice.toFixed(2)}</td>
+                                    <td className="border p-2 text-right">
+                                        {lineTax.toFixed(2)}
+                                    </td>
+                                    <td className="border p-2 text-right">{line.receiptLineTotal.toFixed(2)}</td>
+                                </tr>
+                            );
+                        })
                     ) : (
                         <tr>
                             <td colSpan={6} className="border p-2 text-center text-gray-500">
@@ -256,7 +295,7 @@ const Invoice: React.FC<InvoiceProps> = ({ data, qrUrl }) => {
                 <div className="flex-1 flex flex-row justify-between text-right gap-6">
                     <p>Amount Excl TAX {receipt.receiptCurrency}:</p>
                     {/* <p>{safeReceiptTaxes[0]?.taxAmount.toFixed(2) || "0.00"} {receipt.receiptCurrency}</p> */}
-                    <p>{totalTaxes.toFixed(2)} {receipt.receiptCurrency}</p>
+                    <p>{amountExclTax.toFixed(2)} {receipt.receiptCurrency}</p>
                 </div>
             </div>
 
@@ -271,7 +310,7 @@ const Invoice: React.FC<InvoiceProps> = ({ data, qrUrl }) => {
                 <div className="flex-1 flex flex-row justify-between text-right gap-6">
                     <p>Total VAT:</p>
                     {/* <p>{safeReceiptTaxes[0]?.taxAmount.toFixed(2) || "0.00"} {receipt.receiptCurrency}</p> */}
-                    <p>{totalPercentage.toFixed(2)} {receipt.receiptCurrency}</p>
+                    <p>{totalTaxes.toFixed(2)} {receipt.receiptCurrency}</p>
                 </div>
             </div>
 

@@ -1,3 +1,4 @@
+'use client'
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
@@ -97,7 +98,7 @@ const BankDetails = ({ detail }: { detail: typeof bankDetails[0] }) => {
     );
 };
 
-const Invoice: React.FC<{ data: Receipt }> = ({ data }) => {
+const InvoiceForm: React.FC<{ data: Receipt }> = ({ data }) => {
     const { receipt } = data;
     const { receiptLines, receiptTaxes, receiptTotal } = receipt;
 
@@ -171,6 +172,25 @@ const Invoice: React.FC<{ data: Receipt }> = ({ data }) => {
                     <p><strong>Fiscal Device ID:</strong> {data.deviceID}</p>
                 </div>
             </div>
+
+            <Separator className="my-4 h-[1.5px] rounded bg-black" />
+
+            <div className="text-center my-4">
+                <h1 className="text-xl font-bold">CREDITED INVOICE</h1>
+            </div>
+
+            {/* Invoice Details */}
+            <div className="grid grid-cols-2 gap-6 mt-4">
+                <div className="">
+                    <p><strong>Invoice No:</strong> {receipt.invoiceNo}</p>
+                    <p><strong>Customer reference No:</strong> {receipt.invoiceNo}</p>
+                    <p><strong>Device Serial No:</strong> {data.deviceID}</p>
+                </div>
+                <div className="">
+                    <p><strong>Date:</strong> {new Date(receipt.receiptDate).toLocaleString()}</p>
+                </div>
+            </div>
+
 
             <Separator className="my-4 h-[1.5px] rounded bg-black" />
 
@@ -276,4 +296,4 @@ const Invoice: React.FC<{ data: Receipt }> = ({ data }) => {
     );
 };
 
-export default Invoice;
+export default InvoiceForm;

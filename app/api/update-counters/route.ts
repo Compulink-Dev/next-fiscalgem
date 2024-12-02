@@ -1,5 +1,5 @@
 import { dbConnect } from '@/lib/db';
-import { FiscalCounter } from '@/models/Counters';
+import FiscalCounter from '@/models/Counters';
 import { NextRequest, NextResponse } from 'next/server';
 
 
