@@ -2,13 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+
+
 @page {
   margin: 0; /* Removes default margin */
 }
 
 body {
   font-family: Arial, Helvetica, sans-serif;
-  margin: 1cm; /* Custom margin */
 }
 
 @media print {

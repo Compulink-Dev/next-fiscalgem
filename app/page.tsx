@@ -1,100 +1,64 @@
-'use client';
+import { Button } from '@/components/ui/button'
+import React from 'react'
+import HeroSection from './_components/HeroSection'
+import Header from './_components/Header'
 
-import { Button } from '@/components/ui/button';
-import { useState } from 'react';
-import toast from 'react-hot-toast';
-import ReceiptForm from './_components/ReceiptForm';
-
-const notify = () => toast('Here is your toast.');
-
-
-// Define types for response and config
-interface Config {
-  // Define the properties based on your API response
-  fiscalDayNo: number;
-  status: string;
-  // Add other fields as needed
-}
-
-interface FDMSResponse {
-  // Define the properties based on your FDMS API response
-  success: boolean;
-  message: string;
-  // Add other fields as needed
-}
-
-export default function Home() {
-  const [response, setResponse] = useState<FDMSResponse | null>(null);
-  const [config, setConfig] = useState<Config | null>(null);
-
-  const openFiscalDay = async () => {
-    const res = await fetch('/api/open-day', {
-      method: 'POST',
-    });
-    const data = await res.json();
-    setConfig(data.data);
-  };
-
-  const closeFiscalDay = async () => {
-    await fetch('/api/fiscal/close-day', {
-      method: 'POST',
-    });
-  };
-
-  const sendRequest = async () => {
-    const res = await fetch('/api/fdms-request', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        field1: 'example',
-        field2: 123,
-      }),
-    });
-
-    const data = await res.json();
-    setResponse(data);
-  };
-
-  const sendReceipt = async () => {
-    await fetch('/api/fiscal/send-receipt', {
-      method: 'POST',
-      body: JSON.stringify({
-        field1: 'Example Item',
-        field2: 100,
-      }),
-    });
-  };
-
-
+function Home() {
   return (
-    <div className='p-8'>
-      <h1>Fiscal Device Dashboard</h1>
-      <div className="flex flex-col gap-4 w-[120px] my-4">
-        <Button onClick={openFiscalDay}>Open Fiscal Day</Button>
-        <Button onClick={closeFiscalDay}>Close Fiscal Day</Button>
-        <Button onClick={sendReceipt}>Send Receipt</Button>
-        {config && <pre>{JSON.stringify(config, null, 2)}</pre>}
-      </div>
-      <div className=""></div>
-      <h1 className='pb-4'>FDMS Request</h1>
-      <Button onClick={sendRequest}>Send Request</Button>
-      {response && (
-        <div className='my-8'>
-          <h2 className='text-lg font-bold'>Response</h2>
-          <pre className='border p-4 rounded mt-4 text-red-700'>{JSON.stringify(response, null, 2)}</pre>
+    <div className=" text-gray-900">
+      {/* Header */}
+      <Header />
+
+      {/* Hero Section */}
+      <HeroSection />
+
+      {/* Features Section */}
+      <section id="features" className="py-16 bg-white">
+        <div className=" text-center">
+          <h2 className="text-xl font-semibold mb-8">Our Solutions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-gray-100 p-6 rounded-lg shadow-lg">
+              <h3 className="text-lg font-semibold mb-4">Odoo</h3>
+              <p>Feature description goes here. Explain the unique value it provides.</p>
+            </div>
+            <div className="bg-gray-100 p-6 rounded-lg shadow-lg">
+              <h3 className="text-lg font-semibold mb-4">Palladium</h3>
+              <p>Feature description goes here. Explain the unique value it provides.</p>
+            </div>
+            <div className="bg-gray-100 p-6 rounded-lg shadow-lg">
+              <h3 className="text-lg font-semibold mb-4">Excel</h3>
+              <p>Feature description goes here. Explain the unique value it provides.</p>
+            </div>
+          </div>
         </div>
-      )}
-      <button onClick={notify}>Make me a toast</button>
-      <div className="">
-        <ReceiptForm />
-      </div>
-      <div className="">
-        <Button className="no-print" onClick={() => window.print()}>
-          Print
-        </Button>
-      </div>
+      </section>
+
+      {/* About Section */}
+      <section id="about" className="py-16 bg-blue-50">
+        <div className=" text-center">
+          <h2 className="text-xl font-semibold mb-4">About Fiscal Gem</h2>
+          <p className=" mb-6">We help businesses streamline their fiscal device operations for seamless tax compliance.</p>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section id="contact" className="py-16 bg-white">
+        <div className=" text-center">
+          <h2 className="text-xl font-semibold mb-4">Contact Us</h2>
+          <p className=" mb-6">Have questions? Get in touch with our team.</p>
+
+          <Button
+            className='bg-green-500 hover:bg-green-900'
+          >Email Us</Button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-green-800 text-white text-sm text-center py-4">
+        <p>&copy; 2024 Fiscal Gem. All Rights Reserved.</p>
+      </footer>
     </div>
-  );
+  )
 }
+
+export default Home
