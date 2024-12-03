@@ -16,6 +16,7 @@ import FormSelect from "./FromSelect";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import QRCode from 'react-qr-code';
 import Link from "next/link";
+import FormTrigger from "./FormTrigger";
 // import FormDisabled from "./FormDisabled";
 
 // Define schema
@@ -76,8 +77,6 @@ const receiptSchema = z.object({
     }),
 });
 
-
-
 type ReceiptFormData = z.infer<typeof receiptSchema>;
 
 
@@ -100,7 +99,7 @@ export default function CombinedForm() {
         setFinalPayload,
     } = useReceiptStore();
 
-    const { register, handleSubmit, setValue, watch, getValues, formState: { errors }, control } = useForm<ReceiptFormData>({
+    const { register, handleSubmit, setValue, watch, getValues, trigger, formState: { errors }, control } = useForm<ReceiptFormData>({
         resolver: zodResolver(receiptSchema),
         defaultValues: {
             deviceID: 19034,
@@ -171,41 +170,43 @@ export default function CombinedForm() {
     console.log("Receipt Global No:", receiptGlobalNo);
     console.log("Receipt Type:", receiptType);
 
-    useEffect(() => {
-        console.log("Watched receiptTaxes:", receiptTaxes);
+    // useEffect(() => {
+    //     console.log("Watched receiptTaxes:", receiptTaxes);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        receiptTaxes.forEach((tax: any, index: any) => {
-            const { salesAmountWithTax, taxPercent } = tax;
+    //     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    //     receiptTaxes.forEach((tax: any, index: any) => {
+    //         const { salesAmountWithTax, taxPercent } = tax;
 
-            console.log('TaxPercent : ', taxPercent);
-            console.log('salesAmountWithTax : ', salesAmountWithTax);
-
-
-            // Ensure valid values before calculation
-            if (salesAmountWithTax > 0 && taxPercent > 0) {
-                const calculatedTaxAmount = parseFloat(
-                    (salesAmountWithTax * (taxPercent / 115)).toFixed(2)
-                );
-
-                // Log calculation for debugging
-                console.log(
-                    `Index ${index} - Calculated Tax Amount:`,
-                    calculatedTaxAmount
-                );
+    //         console.log('TaxPercent : ', taxPercent);
+    //         console.log('salesAmountWithTax : ', salesAmountWithTax);
 
 
-                // Update taxAmount in the form state
-                setValue(
-                    `receipt.receiptTaxes.${index}.taxAmount`,
-                    Number(calculatedTaxAmount), // Ensure proper formatting
-                    { shouldValidate: true } // Trigger validation
-                );
-            }
-        });
-        // Log the updated state after applying changes
-        console.log("Updated Form State:", getValues("receipt.receiptTaxes"));
-    }, [receiptTaxes, setValue]);
+    //         // Ensure valid values before calculation
+    //         if (salesAmountWithTax > 0 && taxPercent > 0) {
+    //             const calculatedTaxAmount = parseFloat(
+    //                 (salesAmountWithTax * (taxPercent / 115)).toFixed(2)
+    //             );
+
+    //             // Log calculation for debugging
+    //             console.log(
+    //                 `Index ${index} - Calculated Tax Amount:`,
+    //                 calculatedTaxAmount
+    //             );
+
+
+    //             // Update taxAmount in the form state
+    //             setValue(
+    //                 `receipt.receiptTaxes.${index}.taxAmount`,
+    //                 Number(calculatedTaxAmount), // Ensure proper formatting
+    //                 { shouldValidate: true } // Trigger validation
+    //             );
+    //         }
+    //     });
+    //     // Log the updated state after applying changes
+    //     console.log("Updated Form State:", getValues("receipt.receiptTaxes"));
+    // }, [receiptTaxes, setValue]);
+
+
 
 
     const { fields: receiptLines, append: appendReceiptLine, remove: removeReceiptLine } = useFieldArray({
@@ -223,42 +224,146 @@ export default function CombinedForm() {
         name: 'receipt.receiptPayments',
     });
 
+    useEffect(() => {
+        if (!receiptLines) return; // Handle case where no lines are present
+
+        const updatedLines = receiptLines.map((line, index) => {
+            const calculatedTotal = line.receiptLinePrice * line.receiptLineQuantity || 0;
+            setValue(`receipt.receiptLines.${index}.receiptLineTotal`, calculatedTotal, { shouldValidate: true });
+
+            // Update or synchronize the corresponding tax entry
+            const matchingTax = receiptTaxes.find((tax) => tax.taxCode === line.taxCode);
+            if (matchingTax) {
+                setValue(`receipt.receiptTaxes.${index}.salesAmountWithTax`, calculatedTotal, { shouldValidate: true });
+                const taxAmount = (calculatedTotal * line.taxPercent) / 100;
+                setValue(`receipt.receiptTaxes.${index}.taxAmount`, taxAmount, { shouldValidate: true });
+            } else {
+                appendReceiptTax({
+                    taxCode: line.taxCode,
+                    taxPercent: line.taxPercent,
+                    taxID: line.taxID,
+                    taxAmount: (calculatedTotal * line.taxPercent) / 100, // Calculate taxAmount
+                    salesAmountWithTax: calculatedTotal,
+                });
+            }
+
+            return { ...line, receiptLineTotal: calculatedTotal };
+        });
+
+        // Update receipt total by summing all receipt line totals
+        const total = updatedLines.reduce((sum, line) => sum + line.receiptLineTotal, 0);
+        setValue("receipt.receiptTotal", total, { shouldValidate: true });
+
+        // Update receipt total
+        const receiptTotal = updatedLines.reduce((sum, line) => sum + line.receiptLineTotal, 0);
+        setValue("receipt.receiptTotal", receiptTotal, { shouldValidate: true })
+
+        console.log("Updated Receipt Lines:", updatedLines);
+        console.log("Calculated Receipt Total:", total);
+        console.log("Updated Receipt Total:", receiptTotal);
+    }, [receiptLines, setValue, receiptTaxes, appendReceiptTax]);
+
+
+    // Update receipt payments dynamically when salesAmountWithTax changes
+    useEffect(() => {
+        const updatedPayments = receiptPayments.map((payment, index) => {
+            // Calculate the new payment amount based on salesAmountWithTax
+            const correspondingTax = receiptTaxes.find(tax => tax.taxCode === payment.moneyTypeCode); // Adjust key mapping if needed
+            const newPaymentAmount = correspondingTax ? correspondingTax.salesAmountWithTax : 0;
+
+
+            console.log('Payment From Taxes', newPaymentAmount);
+
+
+            // Update the form state
+            setValue(
+                `receipt.receiptPayments.${index}.paymentAmount`,
+                newPaymentAmount,
+                { shouldValidate: true }
+            );
+
+            return { ...payment, paymentAmount: newPaymentAmount };
+        });
+
+        console.log("Updated Receipt Payments:", updatedPayments);
+    }, [receiptTaxes, receiptPayments, setValue]);
+
+
+
+    useEffect(() => {
+        receiptTaxes.forEach((tax, index) => {
+            const { salesAmountWithTax, taxPercent } = tax;
+
+            if (salesAmountWithTax > 0 && taxPercent > 0) {
+                const calculatedTaxAmount = parseFloat(
+                    (salesAmountWithTax * (taxPercent / 115)).toFixed(2)
+                );
+
+                setValue(
+                    `receipt.receiptTaxes.${index}.taxAmount`,
+                    Number(calculatedTaxAmount),
+                    { shouldValidate: true }
+                );
+            }
+        });
+
+        console.log("Updated Receipt Taxes:", getValues("receipt.receiptTaxes"));
+    }, [receiptTaxes, setValue]);
+
     const router = useRouter()
+
+    // Watch receipt line changes
+    const watchedLines = watch("receipt.receiptLines");
+    console.log("Watched Receipt Lines:", watchedLines);
 
     // Function to add a new receipt line with auto-incremented `receiptLineNo`
     const handleAddReceiptLine = () => {
         const currentLineNo = receiptLines.length > 0 ? receiptLines[receiptLines.length - 1].receiptLineNo : 0;
         const currentTaxCode = receiptLines.length > 0 ? parseInt(receiptLines[receiptLines.length - 1].taxCode, 10) : 0;
         const nextTaxCode = currentTaxCode + 1; // Increment taxCode similarly
-        appendReceiptLine({
+
+        const newLine = {
             receiptLineType: "Sale",
-            receiptLineNo: currentLineNo + 1, // Increment by 1
+            receiptLineNo: currentLineNo + 1,
             receiptLineHSCode: "",
             receiptLineName: "",
             receiptLinePrice: 0,
             receiptLineQuantity: 1,
             receiptLineTotal: 0,
             taxPercent: 15,
-            taxCode: nextTaxCode.toString(), // Ensure taxCode is a string, as your example suggests it's a string
+            taxCode: nextTaxCode.toString(),
             taxID: 1,
-        });
-    };
+        };
 
-    // Function to add a new receipt tax with auto-incremented `taxCode`
-    const handleAddReceiptTax = () => {
-        const currentTaxCode = receiptTaxesFields.length > 0
-            ? parseInt(receiptTaxesFields[receiptTaxesFields.length - 1].taxCode || '0', 10) // Fallback to '0' if taxCode is undefined
-            : 0; // Default to 0 if no receipt taxes exist
-        const nextTaxCode = currentTaxCode + 1; // Increment taxCode by 1
+        appendReceiptLine(newLine);
 
+        // Automatically add or update a matching tax entry
         appendReceiptTax({
-            taxCode: nextTaxCode.toString(), // Set next taxCode as a string
-            taxPercent: 15, // Default value for taxPercent
-            taxID: 0, // Default value for taxID
-            taxAmount: 0, // Default value for taxAmount
-            salesAmountWithTax: 0, // Default value for salesAmountWithTax
+            taxCode: newLine.taxCode,
+            taxPercent: newLine.taxPercent,
+            taxID: newLine.taxID,
+            taxAmount: 0,
+            salesAmountWithTax: 0, // Will update when total is calculated
         });
     };
+
+
+
+    // // Function to add a new receipt tax with auto-incremented `taxCode`
+    // const handleAddReceiptTax = () => {
+    //     const currentTaxCode = receiptTaxesFields.length > 0
+    //         ? parseInt(receiptTaxesFields[receiptTaxesFields.length - 1].taxCode || '0', 10) // Fallback to '0' if taxCode is undefined
+    //         : 0; // Default to 0 if no receipt taxes exist
+    //     const nextTaxCode = currentTaxCode + 1; // Increment taxCode by 1
+
+    //     appendReceiptTax({
+    //         taxCode: nextTaxCode.toString(), // Set next taxCode as a string
+    //         taxPercent: 15, // Default value for taxPercent
+    //         taxID: 0, // Default value for taxID
+    //         taxAmount: 0, // Default value for taxAmount
+    //         salesAmountWithTax: 0, // Default value for salesAmountWithTax
+    //     });
+    // };
 
 
 
@@ -289,6 +394,7 @@ export default function CombinedForm() {
         };
 
 
+
         try {
             console.log("Form data before submission: ", data);
 
@@ -296,6 +402,9 @@ export default function CombinedForm() {
             const receiptTotal = calculateReceiptTotal(data.receipt.receiptLines);
             console.log("Calculated Receipt Total:", receiptTotal);
             data.receipt.receiptTotal = receiptTotal;
+            data.receipt.receiptPayments[0].paymentAmount = receiptTotal
+
+            console.log('Payment :', data.receipt.receiptPayments);
 
             // Ensure receipt taxes align
             // data.receipt.receiptTaxes.forEach(tax => {
@@ -463,6 +572,14 @@ export default function CombinedForm() {
         }
     };
 
+    // Update the total of all receipt lines
+    const updateReceiptTotal = () => {
+        const updatedTotal = receiptLines.reduce((sum, line) => sum + (line.receiptLineTotal || 0), 0);
+        setValue("receipt.receiptTotal", updatedTotal, { shouldValidate: true });
+    };
+
+
+
     return (
         <div className='p-8 flex flex-col w-full items-center justify-center gap-8'>
             <form onSubmit={handleSubmit(onSubmit)} className="w-[600px] border border-green-700 p-4 space-y-2 rounded">
@@ -588,11 +705,49 @@ export default function CombinedForm() {
                             <FormInput label="Receipt Line Name:" name={`receipt.receiptLines.${index}.receiptLineName`} type="text" register={register} error={errors.receipt?.receiptLines?.[index]?.receiptLineName} />
                         </div>
                         <div className="flex items-center gap-2">
-                            <FormInput label="Receipt Line Price*:" name={`receipt.receiptLines.${index}.receiptLinePrice`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptLines?.[index]?.receiptLinePrice} />
-                            <FormInput label="Receipt Line Quantity:" name={`receipt.receiptLines.${index}.receiptLineQuantity`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptLines?.[index]?.receiptLineQuantity} />
+                            <FormTrigger<ReceiptFormData>
+                                label="Receipt Line Price*:"
+                                name={`receipt.receiptLines.${index}.receiptLinePrice`}
+                                type="number"
+                                register={register}
+                                trigger={trigger}
+                                error={errors.receipt?.receiptLines?.[index]?.receiptLinePrice}
+                                onChange={(value) => {
+                                    const price = parseFloat(value as string) || 0;
+                                    const quantity = parseInt(getValues(`receipt.receiptLines.${index}.receiptLineQuantity`) as unknown as string, 10) || 0;
+                                    const total = price * quantity;
+
+                                    // Update line total
+                                    setValue(`receipt.receiptLines.${index}.receiptLineTotal`, total, { shouldValidate: true });
+
+                                    // Recalculate the total for receipt
+                                    updateReceiptTotal();
+                                }}
+                            />
+
+                            <FormTrigger<ReceiptFormData>
+                                label="Receipt Line Quantity:"
+                                name={`receipt.receiptLines.${index}.receiptLineQuantity`}
+                                type="number"
+                                register={register}
+                                trigger={trigger}
+                                error={errors.receipt?.receiptLines?.[index]?.receiptLineQuantity}
+                                onChange={(value) => {
+                                    const quantity = parseInt(value as string, 10) || 0;
+                                    const price = parseInt(getValues(`receipt.receiptLines.${index}.receiptLinePrice`) as unknown as string, 10) || 0;
+                                    const total = price * quantity;
+
+                                    // Update line total
+                                    setValue(`receipt.receiptLines.${index}.receiptLineTotal`, total, { shouldValidate: true });
+
+                                    // Recalculate the total for receipt
+                                    updateReceiptTotal();
+                                }}
+                            />
+
                         </div>
                         <div className="flex items-center gap-2">
-                            <FormInput label="Receipt Line Total:" name={`receipt.receiptLines.${index}.receiptLineTotal`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptLines?.[index]?.receiptLineTotal} />
+                            {/* <FormInput label="Receipt Line Total:" name={`receipt.receiptLines.${index}.receiptLineTotal`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptLines?.[index]?.receiptLineTotal} /> */}
 
                         </div>
                         <div className="flex items-center gap-2">
@@ -631,80 +786,17 @@ export default function CombinedForm() {
                 <Separator className='my-4 bg-green-700' />
 
                 {/* Receipt Taxes */}
-                <h3 className='font-bold text-green-700'>Receipt Taxes:</h3>
-                {receiptTaxesFields.map((item, index) => (
-                    <div key={item.id}>
-                        <div className="flex items-center gap-2">
 
-                            {/* <FormInput label="Tax Percent*:" name={`receipt.receiptTaxes.${index}.taxPercent`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptTaxes?.[index]?.taxPercent} /> */}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <FormInput label="Tax Code*:" name={`receipt.receiptTaxes.${index}.taxCode`} type="text" register={register} error={errors.receipt?.receiptTaxes?.[index]?.taxCode} />
-                            {/* <FormInput label="Tax ID:" name={`receipt.receiptTaxes.${index}.taxID`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptTaxes?.[index]?.taxID} /> */}
-                            <FormSelect label="Tax ID:" name={`receipt.receiptTaxes.${index}.taxID`}
-                                onChangeCallback={(selectedOption) => {
-                                    const taxPercent = Number(selectedOption?.label) || 0; // Default to 0 if undefined
-                                    setValue(`receipt.receiptTaxes.${index}.taxPercent`, taxPercent);
-                                }}
-                                options={[
-                                    { value: 2, label: "0" },
-                                    { value: 1, label: "Exempted" },
-                                    { value: 3, label: "15" },
-                                    { value: 514, label: "5" },
-                                ]}
-                                register={register}
-                                valueType="number"
-                                error={errors.receipt?.receiptTaxes?.[index]?.taxID}
-                            />
-                            {/* <FormDisabled
-                                register={register}
-                                label="Tax Amount:"
-                                name={`receipt.receiptTaxes.${index}.taxAmount`}
-                                type="number"
-                                value={getValues(`receipt.receiptTaxes.${index}.taxAmount`)} // Updated dynamically
-                                disabled
-                            />
-                            <FormInput
-                                label="Tax Amount:"
-                                name={`receipt.receiptTaxes.${index}.taxAmount`}
-                                type="number"
-                                register={(name: any) =>
-                                    register(name, {
-                                        setValueAs: (value) =>
-                                            value === '' ? undefined : parseFloat(Number(value).toFixed(2)), // Ensure two decimal points
-                                    })
-                                }
-                                error={errors.receipt?.receiptTaxes?.[index]?.taxAmount}
-                            /> */}
-                        </div>
-                        <FormInput label="Sales Amount With Tax:" name={`receipt.receiptTaxes.${index}.salesAmountWithTax`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptTaxes?.[index]?.salesAmountWithTax} />
-                        <Button
-                            type="button"
-                            className='bg-red-700 hover:bg-red-500 my-4'
-                            onClick={() => removeReceiptTax(index)}
-                        >
-                            Remove Tax
-                        </Button>
-                    </div>
-                ))}
-                <Button
-                    variant={'outline'}
-                    type="button"
-                    className='w-full text-green-700'
-                    onClick={handleAddReceiptTax} // Call the function when adding a tax
-                >
-                    <Plus />
-                    <p className="">Add Tax</p>
-                </Button>
 
-                <Separator className='my-4 bg-green-700' />
-
+                {/* <Separator className='my-4 bg-green-700' /> */}
                 {/* Receipt Payments */}
-                <h3 className='font-bold text-green-700'>Receipt Payments:</h3>
+                {/* <h3 className='font-bold text-green-700'>Receipt Payments:</h3>
                 {receiptPayments.map((item, index) => (
                     <div key={item.id} className='mb-4'>
                         <div className="flex items-center gap-2">
-                            <FormSelect label="Receipt Currency:" name={`receipt.receiptPayments.${index}.moneyTypeCode`}
+                            <FormSelect
+                                label="Receipt Currency:"
+                                name={`receipt.receiptPayments.${index}.moneyTypeCode`}
                                 options={[
                                     { value: "Cash", label: "Cash" },
                                     { value: "Card", label: "Card" },
@@ -717,25 +809,24 @@ export default function CombinedForm() {
                                 register={register}
                                 error={errors.receipt?.receiptPayments?.[index]?.moneyTypeCode}
                             />
-                            <FormInput label="Payment Amount:" name={`receipt.receiptPayments.${index}.paymentAmount`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptPayments?.[index]?.paymentAmount} />
+                            <FormInput
+                                label="Payment Amount:"
+                                name={`receipt.receiptPayments.${index}.paymentAmount`}
+                                type="number"
+                                register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })}
+                                error={errors.receipt?.receiptPayments?.[index]?.paymentAmount}
+                            />
                         </div>
                         <Button
                             type="button"  // Prevents form submission
-                            className='bg-red-700 hover:bg-red-500 my-4' onClick={() => removeReceiptPayment(index)}>Remove Payment</Button>
+                            className='bg-red-700 hover:bg-red-500 my-4'
+                            onClick={() => removeReceiptPayment(index)}
+                        >
+                            Remove Payment
+                        </Button>
                     </div>
                 ))}
-                <Button
-                    variant={'outline'}
-                    type="button"  // Prevents form submission
-                    className='w-full text-green-700'
-                    onClick={() => appendReceiptPayment({
-                        moneyTypeCode: '', paymentAmount: 0,
-                    })}>
-                    <Plus />
-                    <p className="">Add Payment</p>
-                </Button>
-
-                <Separator className='my-4 bg-green-700' />
+                <Separator className='my-4 bg-green-700' /> */}
 
                 {/* Submit Button */}
                 <div className="w-full">

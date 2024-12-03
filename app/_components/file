@@ -47,3 +47,66 @@
         }
     ]
 }
+
+
+
+const newLine = {
+    receiptLineType: "Sale",
+    receiptLineNo: currentLineNo + 1,
+    receiptLineHSCode: "",
+    receiptLineName: "",
+    receiptLinePrice: 0,
+    receiptLineQuantity: 1,
+    receiptLineTotal: 0,
+    taxPercent: 15,
+    taxCode: nextTaxCode.toString(),
+    taxID: 1,
+};
+
+appendReceiptLine(newLine);
+
+// Automatically add or update a matching tax entry
+appendReceiptTax({
+    taxCode: newLine.taxCode,
+    taxPercent: newLine.taxPercent,
+    taxID: newLine.taxID,
+    taxAmount: 0,
+    salesAmountWithTax: 0, // Will update when total is calculated
+});
+
+
+    {/* Receipt Payments */}
+                <h3 className='font-bold text-green-700'>Receipt Payments:</h3>
+                {receiptPayments.map((item, index) => (
+                    <div key={item.id} className='mb-4'>
+                        <div className="flex items-center gap-2">
+                            <FormSelect label="Receipt Currency:" name={`receipt.receiptPayments.${index}.moneyTypeCode`}
+                                options={[
+                                    { value: "Cash", label: "Cash" },
+                                    { value: "Card", label: "Card" },
+                                    { value: "MobileWallet", label: "MobileWallet" },
+                                    { value: "Coupon", label: "Coupon" },
+                                    { value: "Credit", label: "Credit" },
+                                    { value: "BankTransfer", label: "BankTransfer" },
+                                    { value: "Other", label: "Other" },
+                                ]}
+                                register={register}
+                                error={errors.receipt?.receiptPayments?.[index]?.moneyTypeCode}
+                            />
+                            <FormInput label="Payment Amount:" name={`receipt.receiptPayments.${index}.paymentAmount`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptPayments?.[index]?.paymentAmount} />
+                        </div>
+                        <Button
+                            type="button"  // Prevents form submission
+                            className='bg-red-700 hover:bg-red-500 my-4' onClick={() => removeReceiptPayment(index)}>Remove Payment</Button>
+                    </div>
+                ))}
+                <Button
+                    variant={'outline'}
+                    type="button"  // Prevents form submission
+                    className='w-full text-green-700'
+                    onClick={() => appendReceiptPayment({
+                        moneyTypeCode: '', paymentAmount: 0,
+                    })}>
+                    <Plus />
+                    <p className="">Add Payment</p>
+                </Button>
