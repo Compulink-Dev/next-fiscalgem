@@ -6,17 +6,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, } from "lucide-react";
-import Title from "./Title";
 import { Separator } from "@/components/ui/separator";
-import FormInput from "./FormInput";
 import md5 from "md5";
 import { useReceiptStore } from "@/lib/useReceiptStore";
 import { useRouter } from "next/navigation";
-import FormSelect from "./FromSelect";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import QRCode from 'react-qr-code';
 import Link from "next/link";
-import FormTrigger from "./FormTrigger";
+import FormSelect from "@/app/_components/FromSelect";
+import FormInput from "@/app/_components/FormInput";
+import FormTrigger from "@/app/_components/FormTrigger";
 // import FormDisabled from "./FormDisabled";
 
 // Define schema
@@ -80,7 +79,7 @@ const receiptSchema = z.object({
 type ReceiptFormData = z.infer<typeof receiptSchema>;
 
 
-export default function CombinedForm() {
+export default function DashboardForm() {
     const [previousHash, setPreviousHash] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null); // Error message
@@ -602,10 +601,9 @@ export default function CombinedForm() {
 
 
     return (
-        <div className='p-8 flex flex-col w-full items-center justify-center gap-8'>
-            <form onSubmit={handleSubmit(onSubmit)} className="w-[600px] border border-green-700 p-4 space-y-2 rounded">
+        <div className='w-full'>
+            <form onSubmit={handleSubmit(onSubmit)} className="">
                 <div className="">
-                    <Title />
                     <h2 className='font-bold text-green-700'>Submit Receipt</h2>
                 </div>
 
@@ -630,17 +628,11 @@ export default function CombinedForm() {
                         register={register}
                         error={errors.receipt?.receiptCurrency}
                     />
-                </div>
-                {/* <div className="flex items-center justify-between gap-2">
-                    <FormInput label="Receipt Counter:" name="receipt.receiptCounter" type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptCounter} />
-                    <FormInput label="Receipt Global No:" name="receipt.receiptGlobalNo" type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptGlobalNo} />
-                </div> */}
-                <div className="flex items-center justify-between gap-2">
                     <FormInput label="Invoice No:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
                     <FormInput label="Receipt Date:" name="receipt.receiptDate" type="datetime-local" register={register} error={errors.receipt?.receiptDate} />
                 </div>
                 <div>
-                    <FormInput label="Receipt Notes:" name="receipt.receiptNotes" type="textarea" register={register} error={errors.receipt?.receiptNotes} />
+                    <FormInput label="Receipt Notes*:" name="receipt.receiptNotes" type="textarea" register={register} error={errors.receipt?.receiptNotes} />
                 </div>
 
                 <Separator className="my-4 bg-green-700" />
@@ -650,24 +642,21 @@ export default function CombinedForm() {
                 <div className="flex items-center justify-between gap-2">
                     <FormInput label="Buyer Register Name:" name="receipt.buyerData.buyerRegisterName" type="text" register={register} error={errors.receipt?.buyerData?.buyerRegisterName} />
                     <FormInput label="Buyer Trade Name*:" name="receipt.buyerData.buyerTradeName" type="text" register={register} error={errors.receipt?.buyerData?.buyerTradeName} />
-                </div>
-                <div className="flex items-center justify-between gap-2">
                     <FormInput label="VAT Number*:" name="receipt.buyerData.vatNumber" type="text" register={register} error={errors.receipt?.buyerData?.vatNumber} />
                     <FormInput label="Buyer TIN*:" name="receipt.buyerData.buyerTIN" type="text" register={register} error={errors.receipt?.buyerData?.buyerTIN} />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-2">
+
                     <FormInput label="Phone Number*:" name="receipt.buyerData.buyerContacts.phoneNo" type="text" register={register} error={errors.receipt?.buyerData?.buyerContacts?.phoneNo} />
                     <FormInput label="Email*:" name="receipt.buyerData.buyerContacts.email" type="email" register={register} error={errors.receipt?.buyerData?.buyerContacts?.email} />
-                </div>
-                <div className="flex items-center gap-2">
                     <FormInput label="Province*:" name="receipt.buyerData.buyerAddress.province" type="text" register={register} error={errors.receipt?.buyerData?.buyerAddress?.province} />
                     <FormInput label="City*:" name="receipt.buyerData.buyerAddress.city" type="text" register={register} error={errors.receipt?.buyerData?.buyerAddress?.city} />
                 </div>
                 <div className="flex items-center gap-2">
                     <FormInput label="Street*:" name="receipt.buyerData.buyerAddress.street" type="text" register={register} error={errors.receipt?.buyerData?.buyerAddress?.street} />
                     <FormInput label="House No*:" name="receipt.buyerData.buyerAddress.houseNo" type="text" register={register} error={errors.receipt?.buyerData?.buyerAddress?.houseNo} />
+                    <FormInput label="District*:" name="receipt.buyerData.buyerAddress.district" type="text" register={register} error={errors.receipt?.buyerData?.buyerAddress?.district} />
                 </div>
-                <FormInput label="District*:" name="receipt.buyerData.buyerAddress.district" type="text" register={register} error={errors.receipt?.buyerData?.buyerAddress?.district} />
 
                 <Separator className='my-4 bg-green-700' />
 
@@ -678,10 +667,11 @@ export default function CombinedForm() {
                             <div className="flex items-center justify-between gap-2">
                                 <FormInput label="Receipt ID:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
                                 <FormInput label="Device ID:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
                                 <FormInput label="Receipt Global No:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
                                 <FormInput label="Fiscal Day No:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+
                             </div>
                             <Separator className='my-4 bg-green-700' />
                         </div>
@@ -695,10 +685,11 @@ export default function CombinedForm() {
                             <div className="flex items-center justify-between gap-2">
                                 <FormInput label="Receipt ID:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
                                 <FormInput label="Device ID:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
                                 <FormInput label="Receipt Global No:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
                                 <FormInput label="Fiscal Day No:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+
                             </div>
                             <Separator className='my-4 bg-green-700' />
                         </div>
@@ -720,12 +711,11 @@ export default function CombinedForm() {
                                 error={errors.receipt?.receiptLines?.[index]?.receiptLineType}
                             />
                             <FormInput label="Receipt Line No:" name={`receipt.receiptLines.${index}.receiptLineNo`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptLines?.[index]?.receiptLineNo} />
-                        </div>
-                        <div className="flex items-center gap-2">
                             <FormInput label="Receipt Line HS Code*:" name={`receipt.receiptLines.${index}.receiptLineHSCode`} type="text" register={register} error={errors.receipt?.receiptLines?.[index]?.receiptLineHSCode} />
                             <FormInput label="Receipt Line Name:" name={`receipt.receiptLines.${index}.receiptLineName`} type="text" register={register} error={errors.receipt?.receiptLines?.[index]?.receiptLineName} />
                         </div>
                         <div className="flex items-center gap-2">
+
                             <FormTrigger<ReceiptFormData>
                                 label="Receipt Line Quantity:"
                                 name={`receipt.receiptLines.${index}.receiptLineQuantity`}
@@ -764,13 +754,6 @@ export default function CombinedForm() {
                                     updateReceiptTotal();
                                 }}
                             />
-
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {/* <FormInput label="Receipt Line Total:" name={`receipt.receiptLines.${index}.receiptLineTotal`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptLines?.[index]?.receiptLineTotal} /> */}
-
-                        </div>
-                        <div className="flex items-center gap-2">
                             <FormInput label="Tax Code*:" name={`receipt.receiptLines.${index}.taxCode`} type="text" register={register} error={errors.receipt?.receiptLines?.[index]?.taxCode} />
                             {/* <FormInput label="Tax Percent*:" name={`receipt.receiptLines.${index}.taxPercent`} type="number" register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })} error={errors.receipt?.receiptLines?.[index]?.taxPercent} /> */}
                             <FormSelect label="Tax ID:" name={`receipt.receiptLines.${index}.taxID`}

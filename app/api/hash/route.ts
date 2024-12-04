@@ -137,6 +137,8 @@ export async function POST(req: Request) {
 
         payload.receiptCounter = receiptCounter;
 
+        console.log('Updated receiptCounter : ', payload.receiptCounter);
+
         // Initialize or update fiscal counters
         const updatedCounters = { ...fiscalCounters };
 
