@@ -1,3 +1,4 @@
+'use client'
 import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
 import QRCode from "react-qr-code";
@@ -102,7 +103,9 @@ const BankDetails = ({ detail }: { detail: typeof bankDetails[0] }) => {
 };
 
 
+
 const Invoice: React.FC<InvoiceProps> = ({ data, qrUrl }) => {
+
     const receipt = data?.receipt;
     console.log("Parent Component Data: ", data);
 

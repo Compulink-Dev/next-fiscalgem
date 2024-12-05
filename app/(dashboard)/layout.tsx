@@ -8,13 +8,13 @@ function DashboardLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <div className='flex w-full' >
-            <div className="">
+        <div className='flex w-full h-screen' >
+            <div className="w-42">
                 <Sidebar />
             </div>
-            <main className="flex-1">
+            <main className="flex-1 flex flex-col">
                 <Header />
-                <div className="p-4">
+                <div className="p-4 flex-grow overflow-auto">
                     {children}
                 </div>
             </main>

@@ -18,6 +18,7 @@ export async function fetchData(endpoint: string, errorMessage: string) {
 
     return new Promise<NextResponse>((resolve) => {
         https.get(url, { agent, headers }, (res) => {
+            console.log("Response received from FDMS API:", res.statusCode);
             let data = '';
 
             res.on('data', (chunk) => {
@@ -27,6 +28,7 @@ export async function fetchData(endpoint: string, errorMessage: string) {
             res.on('end', () => {
                 try {
                     const jsonData = JSON.parse(data);
+                    console.log("Parsed JSON data:", jsonData);
                     resolve(NextResponse.json(jsonData));
                 } catch (error) {
                     console.error('Error parsing response:', error);

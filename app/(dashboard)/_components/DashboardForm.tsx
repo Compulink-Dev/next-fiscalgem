@@ -12,10 +12,11 @@ import { useReceiptStore } from "@/lib/useReceiptStore";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import QRCode from 'react-qr-code';
-import Link from "next/link";
+
 import FormSelect from "@/app/_components/FromSelect";
 import FormInput from "@/app/_components/FormInput";
 import FormTrigger from "@/app/_components/FormTrigger";
+import { UrlObject } from "url";
 // import FormDisabled from "./FormDisabled";
 
 // Define schema
@@ -169,45 +170,6 @@ export default function DashboardForm() {
     console.log("Receipt Counter:", receiptCounter);
     console.log("Receipt Global No:", receiptGlobalNo);
     console.log("Receipt Type:", receiptType);
-
-    // useEffect(() => {
-    //     console.log("Watched receiptTaxes:", receiptTaxes);
-
-    //     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    //     receiptTaxes.forEach((tax: any, index: any) => {
-    //         const { salesAmountWithTax, taxPercent } = tax;
-
-    //         console.log('TaxPercent : ', taxPercent);
-    //         console.log('salesAmountWithTax : ', salesAmountWithTax);
-
-
-    //         // Ensure valid values before calculation
-    //         if (salesAmountWithTax > 0 && taxPercent > 0) {
-    //             const calculatedTaxAmount = parseFloat(
-    //                 (salesAmountWithTax * (taxPercent / 115)).toFixed(2)
-    //             );
-
-    //             // Log calculation for debugging
-    //             console.log(
-    //                 `Index ${index} - Calculated Tax Amount:`,
-    //                 calculatedTaxAmount
-    //             );
-
-
-    //             // Update taxAmount in the form state
-    //             setValue(
-    //                 `receipt.receiptTaxes.${index}.taxAmount`,
-    //                 Number(calculatedTaxAmount), // Ensure proper formatting
-    //                 { shouldValidate: true } // Trigger validation
-    //             );
-    //         }
-    //     });
-    //     // Log the updated state after applying changes
-    //     console.log("Updated Form State:", getValues("receipt.receiptTaxes"));
-    // }, [receiptTaxes, setValue]);
-
-
-
 
     const { fields: receiptLines, append: appendReceiptLine, remove: removeReceiptLine } = useFieldArray({
         control,
@@ -367,26 +329,6 @@ export default function DashboardForm() {
         });
     };
 
-
-
-    // // Function to add a new receipt tax with auto-incremented `taxCode`
-    // const handleAddReceiptTax = () => {
-    //     const currentTaxCode = receiptTaxesFields.length > 0
-    //         ? parseInt(receiptTaxesFields[receiptTaxesFields.length - 1].taxCode || '0', 10) // Fallback to '0' if taxCode is undefined
-    //         : 0; // Default to 0 if no receipt taxes exist
-    //     const nextTaxCode = currentTaxCode + 1; // Increment taxCode by 1
-
-    //     appendReceiptTax({
-    //         taxCode: nextTaxCode.toString(), // Set next taxCode as a string
-    //         taxPercent: 15, // Default value for taxPercent
-    //         taxID: 0, // Default value for taxID
-    //         taxAmount: 0, // Default value for taxAmount
-    //         salesAmountWithTax: 0, // Default value for salesAmountWithTax
-    //     });
-    // };
-
-
-
     const onSubmit = async (data: ReceiptFormData) => {
         console.log("Form data submitted: ", data);
         console.log("Receipt Device Signature: ", data.receipt.receiptDeviceSignature);
@@ -476,9 +418,16 @@ export default function DashboardForm() {
 
             console.log("Payload sent to /api/hash:", payload);
 
+            // Store the original counters
+            const originalReceiptGlobalNo = data.receipt.receiptGlobalNo;
+            const originalReceiptCounter = data.receipt.receiptCounter;
+
+            console.log("Og Receipt Counter 1:", originalReceiptCounter);
+            console.log("Og Receipt Global No 1:", originalReceiptGlobalNo);
+
 
             // Step 1: Generate Signature
-            const signatureResponse = await fetch('/api/hash', {
+            const signatureResponse = await fetch('/api/hashed', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -540,8 +489,10 @@ export default function DashboardForm() {
                 receipt: data.receipt,
             };
 
+
+
             // Step 2: Submit to FDMS
-            const submissionResponse = await fetch('/api/submit-receipt', {
+            const submissionResponse = await fetch('/api/submitted', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(finalData),
@@ -556,10 +507,14 @@ export default function DashboardForm() {
             if (!submissionResponse.ok) {
                 const errorMessage = await submissionResponse.text();
                 console.error("Failed to submit receipt:", errorMessage);
+                // If submission failed, revert the counters to the original values
+                data.receipt.receiptGlobalNo = originalReceiptGlobalNo;
+                data.receipt.receiptCounter = originalReceiptCounter;
                 throw new Error(errorMessage); // Throw error to be caught in the catch block
                 // Show error in dialog
                 setErrorMessage(errorMessage);
                 setDialogOpen(true); // Open the dialog
+
             }
 
 
@@ -570,14 +525,20 @@ export default function DashboardForm() {
 
 
 
+
             if (submissionResult.success) {
-                setResponse(submissionResult.data);
-                setFinalPayload(JSON.stringify(finalData, null, 2)); // Save the final payload to state
+                // Save the payload or relevant data in localStorage
+                localStorage.setItem('receiptData', JSON.stringify({
+                    payload: finalData,
+                    qrUrl: qrCodeUrl,
+                    signature: result.receiptDeviceSignature.signature,
+                    hash: result.receiptDeviceSignature.hash,
+                    md5Hash: md5Hash,
+                }));
 
-                // Navigate to the success page
-                router.push(`/invoice?hash=${encodeURIComponent(result.receiptDeviceSignature.hash)}&signature=${encodeURIComponent(result.receiptDeviceSignature.signature)}&qrUrl=${encodeURIComponent(qrCodeUrl)}&md5Hash=${encodeURIComponent(md5Hash)}&payload=${encodeURIComponent(JSON.stringify(finalData))}`);
-
-                console.log("Frontend Final Payload : ", finalPayload);
+                // Open the /invoice page in a new tab
+                window.open('/invoice', '_blank');
+                console.log('Frontend Final Payload:', finalPayload);
                 setError(null);
             } else {
                 setError(submissionResult.error || 'Submission failed');
@@ -788,49 +749,6 @@ export default function DashboardForm() {
 
                 <Separator className='my-4 bg-green-700' />
 
-                {/* Receipt Taxes */}
-
-
-                {/* <Separator className='my-4 bg-green-700' /> */}
-                {/* Receipt Payments */}
-                {/* <h3 className='font-bold text-green-700'>Receipt Payments:</h3>
-                {receiptPayments.map((item, index) => (
-                    <div key={item.id} className='mb-4'>
-                        <div className="flex items-center gap-2">
-                            <FormSelect
-                                label="Receipt Currency:"
-                                name={`receipt.receiptPayments.${index}.moneyTypeCode`}
-                                options={[
-                                    { value: "Cash", label: "Cash" },
-                                    { value: "Card", label: "Card" },
-                                    { value: "MobileWallet", label: "MobileWallet" },
-                                    { value: "Coupon", label: "Coupon" },
-                                    { value: "Credit", label: "Credit" },
-                                    { value: "BankTransfer", label: "BankTransfer" },
-                                    { value: "Other", label: "Other" },
-                                ]}
-                                register={register}
-                                error={errors.receipt?.receiptPayments?.[index]?.moneyTypeCode}
-                            />
-                            <FormInput
-                                label="Payment Amount:"
-                                name={`receipt.receiptPayments.${index}.paymentAmount`}
-                                type="number"
-                                register={(name: any) => register(name, { setValueAs: (value) => (value === "" ? undefined : Number(value)) })}
-                                error={errors.receipt?.receiptPayments?.[index]?.paymentAmount}
-                            />
-                        </div>
-                        <Button
-                            type="button"  // Prevents form submission
-                            className='bg-red-700 hover:bg-red-500 my-4'
-                            onClick={() => removeReceiptPayment(index)}
-                        >
-                            Remove Payment
-                        </Button>
-                    </div>
-                ))}
-                <Separator className='my-4 bg-green-700' /> */}
-
                 {/* Submit Button */}
                 <div className="w-full">
                     <Button type="submit" className='bg-green-700 hover:bg-green-500 mt-4 w-full'>
@@ -839,8 +757,8 @@ export default function DashboardForm() {
                 </div>
 
                 {/* Display Signature and QR Code */}
-                {receiptSignature && (
-                    <div className="bg-green-400 text-green-950 rounded p-4 text-sm w-full">
+                {/* {receiptSignature && (
+                    <div className="bg-green-400 text-green-950 rounded p-4 text-sm l">
                         <h3 className="my-2 font-bold text-lg">Receipt Signature</h3>
                         <div className="space-y-2">
                             <div className="flex gap-2">
@@ -890,7 +808,7 @@ export default function DashboardForm() {
 
                         </div>
                     </div>
-                )}
+                )} */}
 
             </form>
             {/* Error Dialog */}

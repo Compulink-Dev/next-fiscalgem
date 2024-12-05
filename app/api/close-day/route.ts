@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { handleError } from '@/lib/error-handler';
-import { postToFDMS } from '@/lib/fdms-client';
-import axios from 'axios';
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
 
 interface FiscalDayCounter {
     fiscalCounterType: string;
@@ -20,16 +20,36 @@ interface CloseDayRequest {
     receiptCounter: number;
 }
 
-
 export async function POST(request: Request) {
     try {
-        // Parse and validate the request data
-        const { deviceID, fiscalDayNo, fiscalDayCounters, fiscalDayDeviceSignature, receiptCounter }: CloseDayRequest = await request.json();
+        const requestBody = await request.json();
+
+        // Log incoming request for debugging
+        console.log('Received close day request body:', requestBody);
+
+        const { deviceID, fiscalDayNo, fiscalDayCounters, fiscalDayDeviceSignature, receiptCounter }: CloseDayRequest = requestBody;
+
+        // Ensure the required fields exist
+        if (!deviceID || !fiscalDayNo || !fiscalDayCounters || !fiscalDayDeviceSignature || !receiptCounter) {
+            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        }
 
         // Filter out counters with zero values
         const nonZeroCounters = fiscalDayCounters.filter(counter => counter.fiscalCounterValue !== 0);
 
-        // Prepare the payload for FDMS API
+        const url = `https://fdmsapitest.zimra.co.zw/Device/v1/${deviceID}/CloseDay`;
+        const headers = {
+            'DeviceModelName': 'Server',
+            'DeviceModelVersion': 'v1',
+            'Content-Type': 'application/json',
+        };
+
+        const agent = new https.Agent({
+            pfx: fs.readFileSync(path.resolve('/home/kronos/clientCert.pfx')),
+            passphrase: process.env.CLIENT_CERT_PASSWORD,
+        });
+
+        // Create the payload
         const payload = {
             deviceID,
             fiscalDayNo,
@@ -38,15 +58,40 @@ export async function POST(request: Request) {
             receiptCounter
         };
 
-        // Post to FDMS '/closeDay' endpoint
-        const response = await postToFDMS('/closeDay', payload);
-        return NextResponse.json(response.data, { status: response.status });
+        // Wrap https.request in a Promise
+        const responseData = await new Promise<string>((resolve, reject) => {
+            const req = https.request(
+                url,
+                {
+                    method: 'POST',
+                    headers,
+                    agent,
+                },
+                (res) => {
+                    let data = '';
+
+                    res.on('data', (chunk) => {
+                        data += chunk;
+                    });
+
+                    res.on('end', () => resolve(data));
+                    res.on('error', reject);
+                }
+            );
+
+            req.on('error', reject);
+            req.write(JSON.stringify(payload)); // Write the payload
+            req.end();
+        });
+
+        const parsedData = JSON.parse(responseData);
+        console.log('ZIMRA response:', parsedData); // Log the response for debugging
+        return NextResponse.json(parsedData);
     } catch (error) {
-        // Enhanced error handling for Axios errors
-        if (axios.isAxiosError(error)) {
-            return handleError(error.response?.data?.message || error.message);
-        } else {
-            return handleError('An unexpected error occurred');
-        }
+        console.error('Failed to close fiscal day:', error);
+        return NextResponse.json(
+            { error: 'Failed to close fiscal day.' },
+            { status: 500 }
+        );
     }
 }

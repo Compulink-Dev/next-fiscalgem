@@ -50,7 +50,7 @@ export async function POST(req: Request) {
             metadata = new Tracking({
                 fiscalCounters: {}, // Initialize counters
                 previousHash: '',
-                lastReceiptGlobalNo: 93,
+                lastReceiptGlobalNo: 104,
                 lastReceiptCounter: 22,
                 previousReceiptDate: '2024-11-13T19:18:00', // Add previousReceiptDate
             });
@@ -338,14 +338,14 @@ export async function POST(req: Request) {
         // Save the newly generated hash and update metadata
         metadata.previousHash = md5DataHash;
         metadata.lastReceiptGlobalNo = receiptGlobalNo;
-        metadata.receiptCounter = receiptCounter;
+        metadata.lastReceiptCounter = receiptCounter;
         metadata.previousReceiptDate = formattedDate;
         await metadata.save();
 
         console.log('Updated metadata:', {
             previousHash: metadata.previousHash,
             lastReceiptGlobalNo: metadata.lastReceiptGlobalNo,
-            receiptCounter: metadata.receiptCounter,
+            receiptCounter: metadata.lastReceiptCounter,
             previousReceiptDate: metadata.previousReceiptDate,
         });
 
