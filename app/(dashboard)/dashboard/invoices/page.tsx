@@ -6,7 +6,7 @@ import PDFInvoice from '@/app/_components/PDFInvoice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 
@@ -123,7 +123,7 @@ export default function DisplayTables() {
                     localStorage.setItem('invoiceData', JSON.stringify(data));
 
                     // Redirect to the invoices page
-                    router.push('/invoices');
+                    // router.push('/invoices');
                 }, 2000); // Delay for a smoother transition
             } else {
                 setError(data.error || 'Failed to extract tables from the uploaded PDF.');
