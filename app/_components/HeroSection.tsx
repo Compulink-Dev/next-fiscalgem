@@ -11,7 +11,7 @@ function HeroSection() {
                 <Button
                     className='bg-green-500 hover:bg-green-900'
                 >
-                    <Link href={'/receipt'}>
+                    <Link href={'/dashboard'}>
                         Get Started
                     </Link>
                 </Button>
