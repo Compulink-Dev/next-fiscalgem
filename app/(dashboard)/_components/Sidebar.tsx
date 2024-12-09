@@ -27,7 +27,7 @@ function Sidebar() {
                         variant={isActive('/dashboard') ? undefined : 'outline'}
                         className={isActive('/dashboard') ? 'bg-green-700 text-white' : ''}
                     >
-                        <Link href={'/dashboard'} className="flex items-center gap-4">
+                        <Link href={'/dashboard'} className="flex items-center justify-between">
                             <DoorOpen />
                             <p>Open Day</p>
                         </Link>
@@ -38,7 +38,7 @@ function Sidebar() {
                         variant={isActive('/dashboard/storage') ? undefined : 'outline'}
                         className={isActive('/dashboard/storage') ? 'bg-green-700 text-white' : ''}
                     >
-                        <Link href={'/dashboard/storage'} className="flex gap-6 items-center">
+                        <Link href={'/dashboard/storage'} className="flex items-center justify-between">
                             <FolderTree />
                             <p className="text-sm">Storage</p>
                         </Link>
@@ -48,7 +48,7 @@ function Sidebar() {
                         variant={isActive('/dashboard/saved') ? undefined : 'outline'}
                         className={isActive('/dashboard/saved') ? 'bg-green-700 text-white' : ''}
                     >
-                        <Link href={'/dashboard/saved'} className="flex items-center gap-8">
+                        <Link href={'/dashboard/saved'} className="flex items-center justify-between">
                             <FolderSearch />
                             <p>Saved</p>
                         </Link>
@@ -58,7 +58,7 @@ function Sidebar() {
                         variant={isActive('/dashboard/device') ? undefined : 'outline'}
                         className={isActive('/dashboard/device') ? 'bg-green-700 text-white' : ''}
                     >
-                        <Link href={'/dashboard/device'} className="flex items-center gap-8">
+                        <Link href={'/dashboard/device'} className="flex items-center justify-between">
                             <Server />
                             <p>Device</p>
                         </Link>

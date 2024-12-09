@@ -21,11 +21,11 @@ const InvoiceDropdown = () => {
                     <span>Invoice</span>
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
+            <DropdownMenuContent className='bg-green-900 text-white'>
                 <DropdownMenuItem asChild>
                     <Link
                         href="/dashboard/invoices"
-                        className={`flex items-center gap-6 hover:text-green-600`}
+                        className={`flex items-center justify-between hover:text-green-600`}
                     >
                         <FolderUp />
                         <p className="text-sm">Upload</p>
@@ -34,11 +34,21 @@ const InvoiceDropdown = () => {
                 <DropdownMenuItem asChild>
                     <Link
                         href="/dashboard/receipts"
-                        className={`flex items-center gap-6 mt-4 hover:text-green-600`}
+                        className={`flex items-center justify-between mt-4 hover:text-green-600`}
                     >
                         <FolderInput />
                         <p className="text-sm">Receipt</p>
                     </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Button
+                        variant={'ghost'}
+                        onClick={() => window.location.href = '/api/excel'}
+                        className={`mt-4 p-2 flex items-center justify-between hover:text-green-600 w-full border-none outline-none`}
+                    >
+                        <FolderUp />
+                        <p className="text-sm">Excel</p>
+                    </Button>
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

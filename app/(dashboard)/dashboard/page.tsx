@@ -59,11 +59,11 @@ function Dashboard() {
     };
 
     return (
-        <div className="space-y-8">
+        <div className="">
             <h1 className="text-lg font-bold text-gray-800">Dashboard</h1>
 
             {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                 <Card className="p-4 flex flex-col items-center">
                     <p className="text-sm font-semibold">Receipts</p>
                     <p className="text-2xl font-bold text-green-600">{stats.totalReceipts}</p>

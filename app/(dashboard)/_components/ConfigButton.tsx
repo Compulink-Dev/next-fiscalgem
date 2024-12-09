@@ -56,7 +56,7 @@ const ConfigButton = () => {
 
             {/* Display Config Data */}
             {configData && (
-                <div className="mt-4 p-4 border rounded bg-gray-50 w-full">
+                <div className="mt-4 p-4 border rounded bg-gray-50">
                     <h3 className="text-lg font-bold text-green-700">Device Configuration:</h3>
                     <pre className="text-xs text-green-600 mt-2 overflow-auto bg-white p-2 border rounded">
                         {JSON.stringify(configData, null, 2)}

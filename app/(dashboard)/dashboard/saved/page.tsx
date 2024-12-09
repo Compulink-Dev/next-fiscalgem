@@ -68,7 +68,7 @@ function Saved() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-screen">
+            <div className="flex items-center justify-center h-screen text-green-800">
                 <Loader className="animate-spin" size={32} />
                 <p className="ml-4">Loading invoices...</p>
             </div>

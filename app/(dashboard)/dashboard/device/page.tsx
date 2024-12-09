@@ -8,7 +8,7 @@ function Device() {
         <div className="">
             <p className="text-lg font-bold text-green-700">Device Information</p>
             <Separator className='my-4 bg-green-700' />
-            <div className='flex gap-4 text-green-700'>
+            <div className='grid grid-cols-2 gap-4 text-green-700'>
                 <ConfigButton />
                 <StatusButton />
             </div>
