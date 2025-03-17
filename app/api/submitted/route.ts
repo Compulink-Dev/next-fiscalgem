@@ -29,11 +29,19 @@ export async function POST(request: Request) {
         // Save the receipt data to MongoDB
         const savedReceipt = await Receipt.create(receipt);
 
-        // Respond with success, including the saved document
-        return NextResponse.json({
-            success: true,
-            savedReceipt,
-        });
+        if (savedReceipt) {
+            // Respond with success, including the saved document
+            return NextResponse.json({
+                success: true,
+                savedReceipt,
+            });
+        } else {
+            console.error('Error saving receipt:');
+            return NextResponse.json(
+                { success: false, error: 'Failed to save receipt' },
+                { status: 500 }
+            );
+        }
     } catch (error: any) {
         const errorMessage = error.response?.data || error.message;
         console.error('Error saving receipt:', errorMessage);

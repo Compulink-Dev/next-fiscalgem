@@ -2,6 +2,19 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
+import { ReactNode } from "react";
+import { SessionProvider } from "next-auth/react";
+import { getServerSession, Session } from "next-auth";
+import SessionProviderWrapper from "@/lib/SessionPrivder";
+import { options } from "./api/auth/[...nextauth]/options";
+
+interface RootLayoutProps {
+  children: ReactNode; // Type for children elements
+  params: {
+    session?: Session | null; // Optional session prop
+    [key: string]: any; // Allow other params
+  };
+}
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -19,17 +32,20 @@ export const metadata: Metadata = {
   description: "FiscalGem",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+
+
+export default async function RootLayout({ children }: RootLayoutProps) {
+
+  const session = await getServerSession(options);
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <SessionProviderWrapper session={session}>
+          {children}
+        </SessionProviderWrapper>
         <Toaster />
       </body>
     </html>

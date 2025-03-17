@@ -1,7 +1,6 @@
 'use client';
 
 import { useForm, useFieldArray } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -11,12 +10,12 @@ import md5 from "md5";
 import { useReceiptStore } from "@/lib/useReceiptStore";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
-import QRCode from 'react-qr-code';
 
 import FormSelect from "@/app/_components/FromSelect";
 import FormInput from "@/app/_components/FormInput";
 import FormTrigger from "@/app/_components/FormTrigger";
 import { UrlObject } from "url";
+import { z } from "zod";
 // import FormDisabled from "./FormDisabled";
 
 // Define schema
@@ -42,10 +41,10 @@ const receiptSchema = z.object({
             }),
         }),
         receiptDate: z.string().refine(
-            date => !isNaN(Date.parse(date)),
+            (date: any) => !isNaN(Date.parse(date)),
             { message: "Invalid date format. Please use 'YYYY-MM-DDTHH:mm'" }
         ),
-        receiptLinesTaxInclusive: z.boolean().refine(val => val === true || val === false, {
+        receiptLinesTaxInclusive: z.boolean().refine((val: any) => val === true || val === false, {
             message: "Tax Inclusive field must be true or false",
         }),
         receiptNotes: z.string().optional(),
@@ -212,7 +211,7 @@ export default function DashboardForm() {
 
 
             // Update or synchronize the corresponding tax entry
-            const matchingTax = receiptTaxes.find((tax) => tax.taxCode === line.taxCode);
+            const matchingTax = receiptTaxes.find((tax: any) => tax.taxCode === line.taxCode);
             if (matchingTax) {
                 const taxAmount = (calculatedTotal * line.taxPercent) / 100;
 
@@ -227,7 +226,7 @@ export default function DashboardForm() {
                     salesAmountWithTax: calculatedTotal,
                 });
             }
-            return { ...line, receiptLineTotal: calculatedTotal }; // Return the updated line
+            return { ...line, receiptLineTotal: calculatedTotal,getValues }; // Return the updated line
         });
 
         // Update receipt total by summing all receipt line totals
@@ -243,14 +242,14 @@ export default function DashboardForm() {
         console.log("Updated Receipt Total:", receiptTotal);
 
 
-    }, [receiptLines, setValue, receiptTaxes, appendReceiptTax]);
+    }, [receiptLines, setValue, receiptTaxes, appendReceiptTax,getValues]);
 
 
     // Update receipt payments dynamically when salesAmountWithTax changes
     useEffect(() => {
         const updatedPayments = receiptPayments.map((payment, index) => {
             // Calculate the new payment amount based on salesAmountWithTax
-            const correspondingTax = receiptTaxes.find(tax => tax.taxCode === payment.moneyTypeCode); // Adjust key mapping if needed
+            const correspondingTax = receiptTaxes.find((tax: any) => tax.taxCode === payment.moneyTypeCode); // Adjust key mapping if needed
             const newPaymentAmount = correspondingTax ? correspondingTax.salesAmountWithTax : 0;
 
 
@@ -268,12 +267,12 @@ export default function DashboardForm() {
         });
 
         console.log("Updated Receipt Payments:", updatedPayments);
-    }, [receiptTaxes, receiptPayments, setValue]);
+    }, [receiptTaxes, receiptPayments, setValue,getValues]);
 
 
 
     useEffect(() => {
-        receiptTaxes.forEach((tax, index) => {
+        receiptTaxes.forEach((tax: any, index: any) => {
             const { salesAmountWithTax, taxPercent } = tax;
 
             if (salesAmountWithTax > 0 && taxPercent > 0) {
@@ -290,7 +289,7 @@ export default function DashboardForm() {
         });
 
         console.log("Updated Receipt Taxes:", getValues("receipt.receiptTaxes"));
-    }, [receiptTaxes, setValue]);
+    }, [receiptTaxes, setValue,getValues]);
 
     const router = useRouter()
 
@@ -348,7 +347,7 @@ export default function DashboardForm() {
         // Calculate receipt total dynamically
         const calculateReceiptTotal = (receiptLines: ReceiptFormData["receipt"]["receiptLines"]) => {
             let total = 0;
-            receiptLines.forEach(line => {
+            receiptLines.forEach((line: any) => {
                 console.log("Receipt Line Total:", line.receiptLineTotal); // Log individual line totals
                 total += line.receiptLineTotal;
             });
@@ -372,15 +371,15 @@ export default function DashboardForm() {
             // data.receipt.receiptTaxes.forEach(tax => {
             //     tax.taxAmount = parseFloat((tax.salesAmountWithTax * (tax.taxPercent / 115)).toFixed(2)); // Round to 2 decimal places
             // });
-            data.receipt.receiptTaxes.forEach(tax => {
+            data.receipt.receiptTaxes.forEach((tax: any) => {
                 // Filter receipt lines with the same taxCode and taxPercent
                 const relatedLines = data.receipt.receiptLines.filter(
-                    line => line.taxCode === tax.taxCode && line.taxPercent === tax.taxPercent
+                    (line: any) => line.taxCode === tax.taxCode && line.taxPercent === tax.taxPercent
                 );
                 console.log("Tax for receipt line: ", tax);
 
                 // Sum up receiptLineTotal for the related lines
-                const totalLineAmount = relatedLines.reduce((sum, line) => sum + line.receiptLineTotal, 0);
+                const totalLineAmount = relatedLines.reduce((sum: any, line: any) => sum + line.receiptLineTotal, 0);
 
                 if (data.receipt.receiptLinesTaxInclusive) {
                     // For tax-inclusive calculations
@@ -571,7 +570,7 @@ export default function DashboardForm() {
                 <Separator className='my-4 bg-green-700' />
 
                 {/* Receipt Details */}
-                <div className="flex items-center justify-between gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                     <FormSelect label="Receipt Type:" name="receipt.receiptType"
                         options={[
                             { value: "FISCALINVOICE", label: "FISCALINVOICE" },
@@ -600,20 +599,19 @@ export default function DashboardForm() {
 
                 {/* Buyer Data */}
                 <h3 className="font-bold text-green-700">Buyer Data:</h3>
-                <div className="flex items-center justify-between gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                     <FormInput label="Buyer Register Name:" name="receipt.buyerData.buyerRegisterName" type="text" register={register} error={errors.receipt?.buyerData?.buyerRegisterName} />
                     <FormInput label="Buyer Trade Name*:" name="receipt.buyerData.buyerTradeName" type="text" register={register} error={errors.receipt?.buyerData?.buyerTradeName} />
                     <FormInput label="VAT Number*:" name="receipt.buyerData.vatNumber" type="text" register={register} error={errors.receipt?.buyerData?.vatNumber} />
                     <FormInput label="Buyer TIN*:" name="receipt.buyerData.buyerTIN" type="text" register={register} error={errors.receipt?.buyerData?.buyerTIN} />
                 </div>
-                <div className="flex items-center justify-between gap-2">
-
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                     <FormInput label="Phone Number*:" name="receipt.buyerData.buyerContacts.phoneNo" type="text" register={register} error={errors.receipt?.buyerData?.buyerContacts?.phoneNo} />
                     <FormInput label="Email*:" name="receipt.buyerData.buyerContacts.email" type="email" register={register} error={errors.receipt?.buyerData?.buyerContacts?.email} />
                     <FormInput label="Province*:" name="receipt.buyerData.buyerAddress.province" type="text" register={register} error={errors.receipt?.buyerData?.buyerAddress?.province} />
                     <FormInput label="City*:" name="receipt.buyerData.buyerAddress.city" type="text" register={register} error={errors.receipt?.buyerData?.buyerAddress?.city} />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <FormInput label="Street*:" name="receipt.buyerData.buyerAddress.street" type="text" register={register} error={errors.receipt?.buyerData?.buyerAddress?.street} />
                     <FormInput label="House No*:" name="receipt.buyerData.buyerAddress.houseNo" type="text" register={register} error={errors.receipt?.buyerData?.buyerAddress?.houseNo} />
                     <FormInput label="District*:" name="receipt.buyerData.buyerAddress.district" type="text" register={register} error={errors.receipt?.buyerData?.buyerAddress?.district} />
@@ -625,7 +623,7 @@ export default function DashboardForm() {
                     receiptType === "CREDITNOTE" && (
                         <div className="">
                             <h3 className='font-bold text-green-700'>Credit Note:</h3>
-                            <div className="flex items-center justify-between gap-2">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                                 <FormInput label="Receipt ID:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
                                 <FormInput label="Device ID:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
                                 <FormInput label="Receipt Global No:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
@@ -643,14 +641,11 @@ export default function DashboardForm() {
                     receiptType === "DEBITNOTE" && (
                         <div className="">
                             <h3 className='font-bold text-green-700'>Debit Note:</h3>
-                            <div className="flex items-center justify-between gap-2">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                                 <FormInput label="Receipt ID:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
                                 <FormInput label="Device ID:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
                                 <FormInput label="Receipt Global No:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
                                 <FormInput label="Fiscal Day No:" name="receipt.invoiceNo" type="text" register={register} error={errors.receipt?.invoiceNo} />
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-
                             </div>
                             <Separator className='my-4 bg-green-700' />
                         </div>
@@ -662,7 +657,7 @@ export default function DashboardForm() {
                 <h3 className='font-bold text-green-700'>Receipt Lines:</h3>
                 {receiptLines.map((item, index) => (
                     <div key={item.id}>
-                        <div className="flex items-center gap-2">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                             <FormSelect label="Receipt Line Type:" name={`receipt.receiptLines.${index}.receiptLineType`}
                                 options={[
                                     { value: "Sale", label: "Sale" },
@@ -675,7 +670,7 @@ export default function DashboardForm() {
                             <FormInput label="Receipt Line HS Code*:" name={`receipt.receiptLines.${index}.receiptLineHSCode`} type="text" register={register} error={errors.receipt?.receiptLines?.[index]?.receiptLineHSCode} />
                             <FormInput label="Receipt Line Name:" name={`receipt.receiptLines.${index}.receiptLineName`} type="text" register={register} error={errors.receipt?.receiptLines?.[index]?.receiptLineName} />
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
 
                             <FormTrigger<ReceiptFormData>
                                 label="Receipt Line Quantity:"

@@ -53,15 +53,20 @@ export async function POST(request: Request) {
 
         console.log('FDMS API response:', response.data);
 
-        // Save the receipt data to MongoDB
-        const savedReceipt = await Receipt.create(receipt);
-
-        // Respond with success, including both API response and saved document
-        return NextResponse.json({
-            success: true,
-            apiResponse: response.data,
-            savedReceipt,
-        });
+        if (response.status === 200) {
+            // Save the receipt data to MongoDB only if the response is successful
+            const savedReceipt = await Receipt.create(receipt);
+            return NextResponse.json({
+                success: true,
+                apiResponse: response.data,
+                savedReceipt,
+            });
+        } else {
+            return NextResponse.json({
+                success: false,
+                error: 'Failed to submit receipt',
+            });
+        }
     } catch (error: any) {
         const errorMessage = error.response?.data || error.message;
         console.error('Error submitting receipt:', errorMessage);

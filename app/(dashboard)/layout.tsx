@@ -8,16 +8,16 @@ function DashboardLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <div className='flex w-full h-screen' >
+        <div className='flex w-full h-screen overflow-hidden' >
             <div className="w-42">
                 <Sidebar />
             </div>
-            <main className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col">
                 <Header />
-                <div className="p-4 flex-grow overflow-auto">
+                <main className="p-4 flex-grow overflow-y-auto">
                     {children}
-                </div>
-            </main>
+                </main>
+            </div>
         </div>
     )
 }

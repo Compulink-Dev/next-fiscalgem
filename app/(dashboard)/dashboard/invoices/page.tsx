@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { Label } from '@/components/ui/label';
 
 
 
@@ -306,10 +307,12 @@ export default function DisplayTables() {
 
     return (
         <div className="w-full h-full p-4">
+
             {!jsonData ? (
                 <form onSubmit={handleFileUpload} className='space-y-4'>
+                    <Label className=''>Upload PDF File</Label>
                     <Input type="file" name="file" accept=".pdf" />
-                    <Button className='bg-green-700 hover:bg-green-500' type="submit" disabled={loading}>{loading ? 'Processing...' : 'Upload File'}</Button>
+                    <Button className='bg-green-700 hover:bg-green-500' type="submit" disabled={loading}>{loading ? 'Processing...' : 'Upload PDF'}</Button>
                 </form>
             ) : (
                 <div>
