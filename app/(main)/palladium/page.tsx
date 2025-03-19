@@ -11,7 +11,7 @@ export default function InvoicesPage() {
   }, [fetchInvoices]);
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6 h-100px mt-12">
       <h1 className="text-2xl font-bold mb-4">Invoices</h1>
       {invoices.length === 0 ? (
         <p>Loading invoices...</p>
