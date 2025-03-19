@@ -26,7 +26,7 @@ export const useInvoiceStore = create<InvoiceStore>((set) => ({
   invoices: [],
   fetchInvoices: async () => {
     try {
-      const response = await fetch("/api/invoices");
+      const response = await fetch("/api/palladium");
       const data = await response.json();
       set({ invoices: data });
     } catch (error) {
