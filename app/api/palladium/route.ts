@@ -1,14 +1,36 @@
-import { NextResponse } from 'next/server';
+import { fetchInvoices } from "@/lib/sqlDb/route";
+import { NextResponse } from "next/server";
+
 
 export async function GET() {
-    try {
-        // Replace with actual Palladium integration
-        const invoices = await fetch('https://palladium-api.example.com/invoices', {
-            headers: { Authorization: 'Bearer YOUR_TOKEN' },
-        }).then((res) => res.json());
+  try {
+    const invoices = await fetchInvoices();
 
-        return NextResponse.json({ success: true, data: invoices });
-    } catch (error) {
-        return NextResponse.json({ success: false, error }, { status: 500 });
-    }
+    // Grouping items by Invoice ID
+    const groupedInvoices = invoices.reduce((acc: any, item: any) => {
+      const { strInvDocID } = item;
+      if (!acc[strInvDocID]) {
+        acc[strInvDocID] = {
+          invoiceID: strInvDocID,
+          date: item.dteJournalDate,
+          customer: item.strCustName,
+          total: item.decTotal,
+          items: [],
+        };
+      }
+      acc[strInvDocID].items.push({
+        lineNo: item.intLineNo,
+        partNumber: item.strPartNumber,
+        description: item.strPartDesc,
+        quantity: item.decQty,
+        priceEach: item.decPriceEaExc,
+        totalLineAmount: item.decLineTotExc,
+      });
+      return acc;
+    }, {});
+
+    return NextResponse.json(Object.values(groupedInvoices), { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to fetch invoices" }, { status: 500 });
+  }
 }
