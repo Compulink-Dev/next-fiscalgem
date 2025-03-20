@@ -4,6 +4,7 @@ const config: sql.config = {
   user: process.env.DB_USER || "default_user",
   password: process.env.DB_PASSWORD || "default_password",
   server: process.env.DB_HOST || "localhost",
+  port: parseInt(process.env.DB_PORT || "1433"),
   database: process.env.DB_NAME || "default_db",
   options: { encrypt: false, trustServerCertificate: true },
 };
