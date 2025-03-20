@@ -29,11 +29,7 @@ export async function GET() {
       return acc;
     }, {});
 
-    return NextResponse.json(Object.values(groupedInvoices), {     headers: {
-      "Access-Control-Allow-Origin": "*", // Change * to specific domain for security
-      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    },status: 200 });
+    return NextResponse.json(Object.values(groupedInvoices), { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch invoices" }, { status: 500 });
   }
