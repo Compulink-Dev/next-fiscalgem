@@ -10,7 +10,10 @@ const config: sql.config = {
 
 export async function fetchInvoices() {
   try {
+    console.log("Connecting to database...");
     await sql.connect(config);
+    console.log("Connected to database!");
+
     const query = `
       SELECT 
           doc.strInvDocID,
@@ -41,6 +44,8 @@ export async function fetchInvoices() {
       ORDER BY doc.dteJournalDate DESC;
     `;
     const result = await sql.query(query);
+
+    console.log("Fetched Data:", result.recordset); // Log fetched data
     return result.recordset;
   } catch (error) {
     console.error("Database Error:", error);
